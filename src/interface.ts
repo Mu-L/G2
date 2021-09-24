@@ -444,6 +444,9 @@ export interface ShapePoint {
   size?: number;
 }
 
+/** 小提琴图 shape 关键点信息 */
+export type ViolinShapePoint = ShapePoint & { _size?: number[] };
+
 /** 注册 ShapeFactory 需要实现的接口。 */
 export interface RegisterShapeFactory {
   /** 默认的 shape 类型。 */
@@ -838,7 +841,7 @@ export interface ViewCfg {
    */
   readonly padding?: ViewPadding;
   /**
-   * 设置图表的内边距在padding的基础上增加appendPading的调整。
+   * 设置图表的内边距在padding的基础上增加appendPadding的调整。
    * @example
    * 1. padding: 20
    * 2. padding: [ 10, 30, 30 ]
@@ -896,7 +899,7 @@ export interface LegendItem {
   /** 值 */
   value: any;
   /** 图形标记 */
-  marker?: MarkerCfg;
+  marker?: MarkerCfg | ((name: string, index: number, item: { name: string; value: string } & MarkerCfg) => MarkerCfg);
   /** 初始是否处于未激活状态 */
   unchecked?: boolean;
 }
@@ -1027,9 +1030,17 @@ export interface LegendCfg {
    */
   maxHeight?: number;
   /**
+   * **分类图例适用**，图例项最大宽度比例（以 view 的 bbox 宽度为参照，默认 0.25）。
+   */
+  maxWidthRatio?: number;
+  /**
+   * **分类图例适用**，图例项最大高度比例（以 view 的 bbox 高度为参照，默认 0.25）。
+   */
+  maxHeightRatio?: number;
+  /**
    * **分类图例适用**，图例项的 marker 图标的配置。
    */
-  marker?: MarkerCfg;
+  marker?: MarkerCfg | ((name: string, index: number, item: { name: string; value: string } & MarkerCfg) => MarkerCfg);
   /**
    * **适用于分类图例**，当图例项过多时是否进行分页。
    */
@@ -1461,7 +1472,7 @@ export interface SliderCfg {
   readonly height?: number;
 
   /** 滑块背景区域配置 */
-  readonly trendCfg?: TrendCfg;
+  readonly trendCfg?: Omit<TrendCfg, 'data'> & { data?: number[] };
   /** 滑块背景样式 */
   readonly backgroundStyle?: any;
   /** 滑块前景样式 */
@@ -1483,6 +1494,14 @@ export interface SliderCfg {
   /** 滑块文本格式化函数 */
   formatter?: (val: any, datum: Datum, idx: number) => any;
 }
+
+/**
+ * 事件 payload
+ */
+export type EventPayload = LooseObject & {
+  /** 触发事件的来源 */
+  source?: string;
+};
 
 export type EventCallback = (event: LooseObject) => void;
 /**
@@ -1646,6 +1665,8 @@ export interface FacetCfg<D> {
   readonly type?: string;
   /** view 创建回调。 */
   readonly eachView: (innerView: View, facet?: D) => any;
+  /** 分面 view 之间的间隔， 百分比或像素值 */
+  readonly spacing?: [number | string, number | string];
   /** facet view padding。 */
   readonly padding?: ViewPadding;
   /** 是否显示标题。 */
@@ -1710,7 +1731,7 @@ export interface RectCfg extends FacetCfg<RectData> {
   readonly rowTitle?: FacetTitle;
 }
 
-export interface RectData extends FacetData {}
+export type RectData = FacetData;
 
 // ===================== mirror 相关类型定义 =====================
 /** mirror 分面类型配置 */
@@ -1721,7 +1742,7 @@ export interface MirrorCfg extends FacetCfg<MirrorData> {
   readonly title?: FacetTitle;
 }
 
-export interface MirrorData extends FacetData {}
+export type MirrorData = FacetData;
 
 // ===================== list 相关类型定义 =====================
 /** list 分面类型配置 */
@@ -1733,7 +1754,7 @@ export interface ListCfg extends FacetCfg<ListData> {
 }
 
 export interface ListData extends FacetData {
-  readonly total: number;
+  readonly total?: number;
 }
 
 // ===================== matrix 相关类型定义 =====================
@@ -1745,7 +1766,7 @@ export interface MatrixCfg extends FacetCfg<MirrorData> {
   readonly rowTitle?: FacetTitle;
 }
 
-export interface MatrixData extends FacetData {}
+export type MatrixData = FacetData;
 
 // ===================== circle 相关类型定义 =====================
 /** circle 分面类型配置 */
@@ -1754,7 +1775,7 @@ export interface CircleCfg extends FacetCfg<CircleData> {
   readonly title?: FacetTitle;
 }
 
-export interface CircleData extends FacetData {}
+export type CircleData = FacetData;
 
 // ===================== tree 相关类型定义 =====================
 
@@ -1797,6 +1818,8 @@ export interface StyleSheet {
   backgroundColor?: string;
   /** 主题色 */
   brandColor?: string;
+  /** 辅助色 */
+  subColor?: string;
   /** 分类色板 1，在数据量小于等于 10 时使用 */
   paletteQualitative10?: string[];
   /** 分类色板 2，在数据量大于 10 时使用 */
@@ -1807,6 +1830,8 @@ export interface StyleSheet {
   paletteSemanticGreen?: string;
   /** 语义色 */
   paletteSemanticYellow?: string;
+  /** (单色)顺序色板 */
+  paletteSequence?: string[];
   /** 字体 */
   fontFamily?: string;
 
@@ -2062,10 +2087,64 @@ export interface StyleSheet {
   /** Geometry overflowLabel 文本描边粗细 */
   overflowLabelBorder?: number;
 
-  /** Geometry label　文本连接线粗细 */
+  /** Geometry label 文本连接线粗细 */
   labelLineBorder?: number;
   /** Geometry label 文本连接线颜色 */
   labelLineBorderColor?: string;
+
+  // -------------------- Slider 组件样式--------------------
+  /** slider 滑道高度 */
+  cSliderRailHieght?: number;
+  /** slider 滑道背景色 */
+  cSliderBackgroundFillColor?: string;
+  /** slider 滑道背景色透明度 */
+  cSliderBackgroundFillOpacity?: number;
+  /** slider 滑道前景色 */
+  cSliderForegroundFillColor?: string;
+  /** slider 滑道前景色透明度 */
+  cSliderForegroundFillOpacity?: number;
+
+  // slider handlerStyle 手柄样式
+  /** slider 手柄高度 */
+  cSliderHandlerHeight?: number;
+  /** Slider 手柄宽度 */
+  cSliderHandlerWidth?: number;
+  /** Slider 手柄背景色 */
+  cSliderHandlerFillColor?: string;
+  /** Slider 手柄背景色透明度 */
+  cSliderHandlerFillOpacity?: number;
+  /** Slider 手柄高亮背景色 */
+  cSliderHandlerHighlightFillColor?: string;
+  /** Slider 手柄边框色 */
+  cSliderHandlerBorderColor?: string;
+  /** Slider 手柄边框粗细 */
+  cSliderHandlerBorder?: number;
+  /** Slider 手柄边框圆角 */
+  cSliderHandlerBorderRadius?: number;
+
+  // slider textStyle 字体标签样式
+  /** Slider 字体标签颜色 */
+  cSliderTextFillColor?: string;
+  /** Slider 字体标签透明度 */
+  cSliderTextFillOpacity?: number;
+  /** Slider 字体标签大小 */
+  cSliderTextFontSize?: number;
+  /** Slider 字体标签行高 */
+  cSliderTextLineHeight?: number;
+  /** Slider 字体标签字重 */
+  cSliderTextFontWeight?: number | string;
+  /** Slider 字体标签描边色 */
+  cSliderTextBorderColor?: string;
+  /** Slider 字体标签描边粗细 */
+  cSliderTextBorder?: number;
+
+  // -------------------- Scrollbar 组件样式--------------------
+  /** 滚动条 滚道填充色 */
+  scrollbarTrackFillColor?: string;
+  /** 滚动条 滑块填充色 */
+  scrollbarThumbFillColor?: string;
+  /** 滚动条 滑块高亮填充色 */
+  scrollbarThumbHighlightFillColor?: string;
 
   // -------------------- Geometry 图形样式--------------------
   /** 点图的大小范围 */
@@ -2342,12 +2421,14 @@ export interface StyleSheet {
 export type StyleSheetCfg = Pick<
   StyleSheet,
   | 'backgroundColor'
+  | 'subColor'
   | 'brandColor'
   | 'paletteQualitative10'
   | 'paletteQualitative20'
   | 'paletteSemanticRed'
   | 'paletteSemanticGreen'
   | 'paletteSemanticYellow'
+  | 'paletteSequence'
   | 'fontFamily'
 >;
 

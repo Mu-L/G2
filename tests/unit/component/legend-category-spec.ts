@@ -49,7 +49,7 @@ describe('Legend category navigation', () => {
     const legends = chart.getComponents().filter((co) => co.type === COMPONENT_TYPE.LEGEND);
     const legend = legends[0].component as GroupComponent<GroupComponentCfg>;
     const navigation = legend.getElementById(`${legendId}-legend-navigation-group`);
-    let children = navigation ? navigation.getChildren() : [];
+    const children = navigation ? navigation.getChildren() : [];
 
     expect(children[0].attr('fill')).toBe(antvLight.legendPageNavigatorMarkerInactiveFillColor);
     expect(children[0].attr('opacity')).toBe(antvLight.legendPageNavigatorMarkerInactiveFillOpacity);
@@ -67,7 +67,7 @@ describe('Legend category navigation', () => {
     const legends = chart.getComponents().filter((co) => co.type === COMPONENT_TYPE.LEGEND);
     const legend = legends[0].component as GroupComponent<GroupComponentCfg>;
     const navigation = legend.getElementById(`${legendId}-legend-navigation-group`);
-    let children = navigation ? navigation.getChildren() : [];
+    const children = navigation ? navigation.getChildren() : [];
 
     expect(children[0].attr('fill')).toBe(antvDark.legendPageNavigatorMarkerInactiveFillColor);
     expect(children[0].attr('opacity')).toBe(antvDark.legendPageNavigatorMarkerInactiveFillOpacity);
@@ -102,7 +102,7 @@ describe('Legend category navigation', () => {
     const legends = chart.getComponents().filter((co) => co.type === COMPONENT_TYPE.LEGEND);
     const legend = legends[0].component as GroupComponent<GroupComponentCfg>;
     const navigation = legend.getElementById(`${legendId}-legend-navigation-group`);
-    let children = navigation ? navigation.getChildren() : [];
+    const children = navigation ? navigation.getChildren() : [];
 
     expect(children[0].attr('fill')).toBe('pink');
     expect(children[0].attr('opacity')).toBe(0.3);
@@ -123,6 +123,139 @@ describe('Legend category navigation', () => {
     const navigation = legend.getElementById(`${legendId}-legend-navigation-group`);
 
     expect(navigation).toBeUndefined();
+  });
+
+  it('legend marker with callback', () => {
+    chart.legend('clarity', {
+      position: 'right',
+      flipPage: true,
+      marker: {
+        symbol: 'square',
+        style: { fill: 'red' },
+      },
+    });
+    chart.render();
+
+    let legends = chart.getComponents().filter((co) => co.type === COMPONENT_TYPE.LEGEND);
+    let items = legends[0].component.get('items');
+    expect(items[0].marker.symbol).toBe('square');
+    expect(items[0].marker.style.fill).toBe('red');
+
+    chart.legend('clarity', {
+      position: 'right',
+      flipPage: true,
+      marker: (text, index, item) => {
+        return {
+          symbol: index === 0 ? 'triangle' : 'diamond',
+          style: { fill: 'red', stroke: index === 1 ? 'red' : undefined },
+        };
+      },
+    });
+    chart.render();
+
+    legends = chart.getComponents().filter((co) => co.type === COMPONENT_TYPE.LEGEND);
+    items = legends[0].component.get('items');
+    expect(items[0].marker.symbol).toBe('triangle');
+    expect(items[1].marker.symbol).toBe('diamond');
+    expect(items[0].marker.style.fill).toBe('red');
+    expect(items[1].marker.style.stroke).toBe('red');
+
+    chart.legend('clarity', {
+      marker: {
+        symbol: 'circle',
+        style: { fill: 'lightgreen' },
+      },
+    });
+    chart.render();
+
+    legends = chart.getComponents().filter((co) => co.type === COMPONENT_TYPE.LEGEND);
+    items = legends[0].component.get('items');
+    expect(items[0].marker.symbol).toBe('circle');
+    expect(items[1].marker.symbol).toBe('circle');
+    expect(items[0].marker.style.fill).toBe('lightgreen');
+  });
+
+  it('custom legend items, and marker with callback', () => {
+    chart.legend('clarity', {
+      marker: (text, index, item) => {
+        return {
+          symbol: index === 0 ? 'square' : 'diamond',
+          style: { fill: 'red', stroke: index === 0 ? 'red' : undefined },
+        };
+      },
+      custom: true,
+      items: [
+        {
+          name: '城市 1',
+          value: 'city-1',
+          marker: { symbol: 'triangle', style: { r: 4, fill: 'blue' } },
+        },
+        {
+          name: '城市 2',
+          value: 'city-2',
+        },
+      ],
+    });
+    chart.render();
+
+    const legends = chart.getComponents().filter((co) => co.type === COMPONENT_TYPE.LEGEND);
+    const items = legends[0].component.get('items');
+    expect(items[0].marker.symbol).toBe('triangle');
+    // 继承默认的 symbol 设置
+    expect(items[1].marker.symbol).toBe('diamond');
+    expect(items[0].marker.style.fill).toBe('blue');
+    // 继承默认的 symbol 设置
+    expect(items[1].marker.style.stroke).toBeUndefined();
+  });
+
+  it('maxItemWidth, maxWidth, maxWidthRatio', () => {
+    chart.legend('clarity', {
+      position: 'right',
+      custom: true,
+      items: [
+        {
+          name: '城市-1-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市',
+          value: 'city-1',
+        },
+      ],
+    });
+    chart.render();
+    let legends = chart.getComponents().filter((co) => co.type === COMPONENT_TYPE.LEGEND);
+    // 不会大于
+    expect(legends[0].component.getLayoutBBox().width).not.toBeGreaterThan(
+      chart.getTheme().components.legend.common.maxItemWidth
+    );
+    expect(legends[0].component.getLayoutBBox().width).toBe(400 * 0.25);
+
+    chart.legend('clarity', {
+      position: 'right',
+      maxWidthRatio: 0.2,
+      custom: true,
+      items: [
+        {
+          name: '城市-1-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市',
+          value: 'city-1',
+        },
+      ],
+    });
+    chart.render();
+    legends = chart.getComponents().filter((co) => co.type === COMPONENT_TYPE.LEGEND);
+    expect(legends[0].component.getLayoutBBox().width).toBe(400 * 0.2);
+
+    chart.legend('clarity', {
+      position: 'right',
+      maxWidth: 90,
+      custom: true,
+      items: [
+        {
+          name: '城市-1-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市-城市',
+          value: 'city-1',
+        },
+      ],
+    });
+    chart.render();
+    legends = chart.getComponents().filter((co) => co.type === COMPONENT_TYPE.LEGEND);
+    expect(legends[0].component.getLayoutBBox().width).toBe(90);
   });
 });
 

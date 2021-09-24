@@ -79,7 +79,10 @@ _AxisOption_ 配置如下：
 | ---------- | ------------------- | -------- | ------ | ------------------------ |
 | style      | [ShapeAttrs](/zh/docs/api/shape/shape-attrs) |          | -      | 坐标轴刻度线的样式配置项 |
 | offset     | number              |          | -      | 标题距离坐标轴的距离     |
+| spacing    | number              |          | -      | 标题距离坐标轴文本的距离  |
+| text       | string              |          | -      | 设置文本               |
 | autoRotate | boolean             |          | -      | 是否自动旋转             |
+| position   | 'start' \| 'center' \| 'end' |          | -      | 坐标轴名称显示位置 |
 
 ### AxisOption.label
 

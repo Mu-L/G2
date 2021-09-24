@@ -26,6 +26,7 @@ import Path, { PathCfg } from './geometry/path';
 import Point from './geometry/point';
 import Polygon from './geometry/polygon';
 import Schema from './geometry/schema';
+import Violin from './geometry/violin';
 
 registerGeometry('Polygon', Polygon);
 registerGeometry('Interval', Interval);
@@ -36,6 +37,7 @@ registerGeometry('Line', Line);
 registerGeometry('Area', Area);
 registerGeometry('Edge', Edge);
 registerGeometry('Heatmap', Heatmap);
+registerGeometry('Violin', Violin);
 
 // 引入所有内置的 shapes
 import './geometry/shape/area/line';
@@ -62,6 +64,9 @@ import './geometry/shape/schema/box';
 import './geometry/shape/schema/candle';
 
 import './geometry/shape/polygon/square';
+
+import './geometry/shape/violin/smooth';
+import './geometry/shape/violin/hollow';
 
 // 注册 Geometry 内置的 label
 import { registerGeometryLabel } from './core';
@@ -172,17 +177,17 @@ import SiblingTooltip from './interaction/action/component/tooltip/sibling';
 import TooltipAction from './interaction/action/component/tooltip/geometry';
 import EllipsisTextAction from './interaction/action/component/tooltip/ellipsis-text';
 
-import ElmentActive from './interaction/action/element/active';
+import ElementActive from './interaction/action/element/active';
 import ElementLinkByColor from './interaction/action/element/link-by-color';
-import ElmentRangeActive from './interaction/action/element/range-active';
-import ElmentSingleActive from './interaction/action/element/single-active';
+import ElementRangeActive from './interaction/action/element/range-active';
+import ElementSingleActive from './interaction/action/element/single-active';
 
-import ElmentHighlight from './interaction/action/element/highlight';
-import ElmentHighlightByColor from './interaction/action/element/highlight-by-color';
-import ElmentHighlightByX from './interaction/action/element/highlight-by-x';
+import ElementHighlight from './interaction/action/element/highlight';
+import ElementHighlightByColor from './interaction/action/element/highlight-by-color';
+import ElementHighlightByX from './interaction/action/element/highlight-by-x';
 
-import ElmentRangeHighlight from './interaction/action/element/range-highlight';
-import ElmentSingleHighlight from './interaction/action/element/single-highlight';
+import ElementRangeHighlight, { ELEMENT_RANGE_HIGHLIGHT_EVENTS } from './interaction/action/element/range-highlight';
+import ElementSingleHighlight from './interaction/action/element/single-highlight';
 
 import ElementRangeSelected from './interaction/action/element/range-selected';
 import ElementSelected from './interaction/action/element/selected';
@@ -202,7 +207,7 @@ import SmoothPathMask from './interaction/action/mask/smooth-path';
 
 import CursorAction from './interaction/action/cursor';
 import DataFilter from './interaction/action/data/filter';
-import DataRangeFilter from './interaction/action/data/range-filter';
+import DataRangeFilter, { BRUSH_FILTER_EVENTS } from './interaction/action/data/range-filter';
 import SiblingFilter from './interaction/action/data/sibling-filter';
 
 import ElementFilter from './interaction/action/element/filter';
@@ -216,17 +221,17 @@ import ScaleZoom from './interaction/action/view/scale-zoom';
 registerAction('tooltip', TooltipAction);
 registerAction('sibling-tooltip', SiblingTooltip);
 registerAction('ellipsis-text', EllipsisTextAction);
-registerAction('element-active', ElmentActive);
-registerAction('element-single-active', ElmentSingleActive);
-registerAction('element-range-active', ElmentRangeActive);
+registerAction('element-active', ElementActive);
+registerAction('element-single-active', ElementSingleActive);
+registerAction('element-range-active', ElementRangeActive);
 
-registerAction('element-highlight', ElmentHighlight);
-registerAction('element-highlight-by-x', ElmentHighlightByX);
-registerAction('element-highlight-by-color', ElmentHighlightByColor);
+registerAction('element-highlight', ElementHighlight);
+registerAction('element-highlight-by-x', ElementHighlightByX);
+registerAction('element-highlight-by-color', ElementHighlightByColor);
 
-registerAction('element-single-highlight', ElmentSingleHighlight);
-registerAction('element-range-highlight', ElmentRangeHighlight);
-registerAction('element-sibling-highlight', ElmentRangeHighlight, {
+registerAction('element-single-highlight', ElementSingleHighlight);
+registerAction('element-range-highlight', ElementRangeHighlight);
+registerAction('element-sibling-highlight', ElementRangeHighlight, {
   effectSiblings: true,
   effectByRecord: true,
 });
@@ -675,10 +680,18 @@ declare module './chart/view' {
      * @returns heatmap 返回 Heatmap 实例。
      */
     heatmap(cfg?: Partial<GeometryCfg>): Heatmap;
+    /**
+     * 创建 Violin 几何标记。
+     * @param [cfg] 传入 Violin 构造函数的配置。
+     * @returns violin 返回 Violin 实例。
+     */
+    violin(cfg?: Partial<GeometryCfg>): Violin;
   }
 }
 
 // 暴露一些常量
 export { VIEW_LIFE_CIRCLE } from './constant';
+/** brush 范围筛选的一些事件常量 */
+export { BRUSH_FILTER_EVENTS, ELEMENT_RANGE_HIGHLIGHT_EVENTS };
 
 export * from './core';

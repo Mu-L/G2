@@ -50,6 +50,22 @@ module.exports = {
         order: 0,
       },
     ],
+    ecosystems: [
+      {
+        name: {
+          zh: 'G2Plot（开箱即用的图表库）',
+          en: 'G2Plot (A charting library)',
+        },
+        url: 'https://g2plot.antv.vision',
+      },
+      {
+        name: {
+          zh: 'AntV ThemeSet（主题构建器）',
+          en: 'AntV ThemeSet',
+        },
+        url: 'https://theme-set.antv.vision',
+      },
+    ],
     docs: [
       {
         slug: 'manual/concepts',
@@ -277,12 +293,23 @@ module.exports = {
           en: 'Other Chart',
         },
       },
+      {
+        slug: 'customize',
+        icon: 'other',
+        title: {
+          zh: '业务自定义',
+          en: 'Customize',
+        },
+      },
     ],
     docsearchOptions: {
       apiKey: '200ec461f4aa0bb4f0e761566f1a1336',
       indexName: 'antv_g2',
     },
     playground: {
+      devDependencies: {
+        typescript: 'latest',
+      },
       htmlCodeTemplate: `<!DOCTYPE html>
         <html>
           <head>
