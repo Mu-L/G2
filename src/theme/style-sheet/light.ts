@@ -58,37 +58,46 @@ const QUALITATIVE_20 = [
   '#FFE0ED',
 ];
 
+/** 单色顺序色板 */
+const SINGLE_SEQUENCE = [
+  '#B8E1FF',
+  '#9AC5FF',
+  '#7DAAFF',
+  '#5B8FF9',
+  '#3D76DD',
+  '#085EC0',
+  '#0047A5',
+  '#00318A',
+  '#001D70',
+];
+
 export const createLightStyleSheet = (cfg: StyleSheetCfg = {}) => {
-  const {
-    backgroundColor = 'transparent',
-    paletteQualitative10 = QUALITATIVE_10,
-    paletteQualitative20 = QUALITATIVE_20,
-    paletteSemanticRed = '#F4664A',
-    paletteSemanticGreen = '#30BF78',
-    paletteSemanticYellow = '#FAAD14',
-    fontFamily = `"-apple-system", "Segoe UI", Roboto, "Helvetica Neue", Arial,
-    "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
-    "Noto Color Emoji"`,
-  } = cfg;
+  const { paletteQualitative10 = QUALITATIVE_10, paletteQualitative20 = QUALITATIVE_20 } = cfg;
   const { brandColor = paletteQualitative10[0] } = cfg;
 
-  return {
+  const token = {
     /** 图表背景色 */
-    backgroundColor,
+    backgroundColor: 'transparent',
     /** 主题色 */
     brandColor,
+    /** 图表辅助色 */
+    subColor: 'rgba(0,0,0,0.05)',
     /** 分类色板 1，在数据量小于等于 10 时使用 */
     paletteQualitative10,
     /** 分类色板 2，在数据量大于 10 时使用 */
     paletteQualitative20,
     /** 语义色 */
-    paletteSemanticRed,
+    paletteSemanticRed: '#F4664A',
     /** 语义色 */
-    paletteSemanticGreen,
+    paletteSemanticGreen: '#30BF78',
     /** 语义色 */
-    paletteSemanticYellow,
+    paletteSemanticYellow: '#FAAD14',
+    /** (单色)顺序色板 */
+    paletteSequence: SINGLE_SEQUENCE,
     /** 字体 */
-    fontFamily,
+    fontFamily: `"Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+    "Noto Color Emoji"`,
 
     // -------------------- 坐标轴 --------------------
     /** 坐标轴线颜色 */
@@ -108,6 +117,8 @@ export const createLightStyleSheet = (cfg: StyleSheetCfg = {}) => {
     axisTitleTextFontWeight: 'normal',
     /** 坐标轴标题距离坐标轴文本的间距 */
     axisTitleSpacing: 12,
+    /** 坐标轴标题详细说明icon颜色 */
+    axisDescriptionIconFillColor: WHITE_COLORS[85],
 
     /** 坐标轴刻度线颜色 */
     axisTickLineBorderColor: BLACK_COLORS[25],
@@ -335,10 +346,62 @@ export const createLightStyleSheet = (cfg: StyleSheetCfg = {}) => {
     /** Geometry overflowLabel 文本描边粗细 */
     overflowLabelBorder: 1,
 
-    /** Geometry label　文本连接线粗细 */
+    /** Geometry label 文本连接线粗细 */
     labelLineBorder: 1,
     /** Geometry label 文本连接线颜色 */
     labelLineBorderColor: BLACK_COLORS[25],
+
+    // -------------------- Slider 组件样式--------------------
+    /** slider 滑道高度 */
+    cSliderRailHieght: 16,
+    /** slider 滑道背景色 */
+    cSliderBackgroundFillColor: '#416180',
+    /** slider 滑道背景色透明度 */
+    cSliderBackgroundFillOpacity: 0.05,
+    /** slider 滑道前景色 */
+    cSliderForegroundFillColor: '#5B8FF9',
+    /** slider 滑道前景色透明度 */
+    cSliderForegroundFillOpacity: 0.15,
+    // slider handlerStyle 手柄样式
+    /** slider 手柄高度 */
+    cSliderHandlerHeight: 24,
+    /** Slider 手柄宽度 */
+    cSliderHandlerWidth: 10,
+    /** Slider 手柄背景色 */
+    cSliderHandlerFillColor: '#F7F7F7',
+    /** Slider 手柄背景色透明度 */
+    cSliderHandlerFillOpacity: 1,
+    /** Slider 手柄高亮背景色 */
+    cSliderHandlerHighlightFillColor: '#FFF',
+    /** Slider 手柄边框色 */
+    cSliderHandlerBorderColor: '#BFBFBF',
+    /** Slider 手柄边框粗细 */
+    cSliderHandlerBorder: 1,
+    /** Slider 手柄边框圆角 */
+    cSliderHandlerBorderRadius: 2,
+    // slider textStyle 字体标签样式
+    /** Slider 字体标签颜色 */
+    cSliderTextFillColor: '#000',
+    /** Slider 字体标签透明度 */
+    cSliderTextFillOpacity: 0.45,
+    /** Slider 字体标签大小 */
+    cSliderTextFontSize: 12,
+    /** Slider 字体标签行高 */
+    cSliderTextLineHeight: 12,
+    /** Slider 字体标签字重 */
+    cSliderTextFontWeight: 'normal',
+    /** Slider 字体标签描边色 */
+    cSliderTextBorderColor: null,
+    /** Slider 字体标签描边粗细 */
+    cSliderTextBorder: 0,
+
+    // -------------------- Scrollbar 组件样式--------------------
+    /** 滚动条 滚道填充色 */
+    scrollbarTrackFillColor: 'rgba(0,0,0,0)',
+    /** 滚动条 滑块填充色 */
+    scrollbarThumbFillColor: 'rgba(0,0,0,0.15)',
+    /** 滚动条 滑块高亮填充色 */
+    scrollbarThumbHighlightFillColor: 'rgba(0,0,0,0.2)',
 
     // -------------------- Geometry 图形样式--------------------
     /** 点图填充颜色 */
@@ -490,6 +553,8 @@ export const createLightStyleSheet = (cfg: StyleSheetCfg = {}) => {
     /** hollowInterval inactive 状态下边框透明度 */
     hollowIntervalInactiveBorderOpacity: 0.3,
   };
+
+  return { ...token, ...cfg };
 };
 
 export const antvLight = createLightStyleSheet();

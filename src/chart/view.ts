@@ -19,6 +19,7 @@ import {
   uniqueId,
   isEqual,
   isPlainObject,
+  reduce,
 } from '@antv/util';
 import { Attribute, Coordinate, Event as GEvent, GroupComponent, ICanvas, IGroup, IShape, Scale } from '../dependents';
 import {
@@ -41,11 +42,14 @@ import {
   ViewCfg,
   ViewPadding,
   ViewAppendPadding,
+  EventPayload,
+  Padding,
 } from '../interface';
 import { GROUP_Z_INDEX, LAYER, PLOT_EVENTS, VIEW_LIFE_CIRCLE } from '../constant';
 import Base from '../base';
 import { Facet, getFacet } from '../facet';
 import Geometry from '../geometry/base';
+import Element from '../geometry/element';
 import { createInteraction, Interaction } from '../interaction';
 import { getTheme } from '../theme';
 import { BBox } from '../util/bbox';
@@ -224,13 +228,14 @@ export class View extends Base {
    * 生命周期：渲染流程，渲染过程需要处理数据更新的情况。
    * render 函数仅仅会处理 view 和子 view。
    * @param isUpdate 是否触发更新流程。
+   * @param params render 事件参数
    */
-  public render(isUpdate: boolean = false) {
-    this.emit(VIEW_LIFE_CIRCLE.BEFORE_RENDER);
+  public render(isUpdate: boolean = false, payload?: EventPayload) {
+    this.emit(VIEW_LIFE_CIRCLE.BEFORE_RENDER, Event.fromData(this, VIEW_LIFE_CIRCLE.BEFORE_RENDER, payload));
     // 递归渲染
     this.paint(isUpdate);
 
-    this.emit(VIEW_LIFE_CIRCLE.AFTER_RENDER);
+    this.emit(VIEW_LIFE_CIRCLE.AFTER_RENDER, Event.fromData(this, VIEW_LIFE_CIRCLE.AFTER_RENDER, payload));
 
     if (this.visible === false) {
       // 用户在初始化的时候声明 visible: false
@@ -256,6 +261,7 @@ export class View extends Base {
       geometries[i].clear();
       // view 中使用 geometry 的时候，还需要清空它的容器，不然下一次 chart.geometry() 的时候，又创建了一个，导致泄露， #2799。
       geometries[i].container.remove(true);
+      geometries[i].labelsContainer.remove(true);
     }
     this.geometries = [];
 
@@ -934,14 +940,16 @@ export class View extends Base {
   public getYScales(): Scale[] {
     // 拿到所有的 Geometry 的 Y scale，然后去重
     const tmpMap = {};
-    return this.geometries.map((g: Geometry) => {
+    const yScales = [];
+    this.geometries.forEach((g: Geometry) => {
       const yScale = g.getYScale();
       const field = yScale.field;
       if (!tmpMap[field]) {
         tmpMap[field] = true;
-        return yScale;
+        yScales.push(yScale);
       }
     });
+    return yScales;
   }
 
   /**
@@ -969,10 +977,18 @@ export class View extends Base {
    * @param field 数据字段名称
    * @param key id
    */
-  public getScaleByField(field: string, key?: string): Scale {
+  public getScale(field: string, key?: string): Scale {
     const defaultKey = key ? key : this.getScaleKey(field);
     // 调用根节点 view 的方法获取
     return this.getRootView().scalePool.getScale(defaultKey);
+  }
+
+  /**
+   * @deprecated
+   * This method will be removed at G2 V4.1. Please use `getScale`.
+   */
+  public getScaleByField(field: string, key?: string): Scale {
+    return this.getScale(field, key);
   }
 
   /**
@@ -989,6 +1005,61 @@ export class View extends Base {
    */
   public getData() {
     return this.filteredData;
+  }
+
+  /**
+   * 获取原始数据
+   * @returns 传入 G2 的原始数据
+   */
+  public getOriginalData() {
+    return this.options.data;
+  }
+
+  /**
+   * 获取布局后的边距 padding
+   * @returns
+   */
+  public getPadding(): Padding {
+    return this.autoPadding.getPadding();
+  }
+
+  /**
+   * 获取当前 view 有的 geometries
+   * @returns
+   */
+  public getGeometries() {
+    return this.geometries;
+  }
+
+  /**
+   * 获取 view 中的所有 geome
+   */
+  public getElements(): Element[] {
+    return reduce(
+      this.geometries,
+      (elements: Element[], geometry: Geometry) => {
+        return elements.concat(geometry.getElements());
+      },
+      []
+    );
+  }
+
+  /**
+   * 根据一定的规则查找 Geometry 的 Elements。
+   *
+   * ```typescript
+   * getElementsBy((element) => {
+   *   const data = element.getData();
+   *
+   *   return data.a === 'a';
+   * });
+   * ```
+   *
+   * @param condition 定义查找规则的回调函数。
+   * @returns
+   */
+  public getElementsBy(condition: (element: Element) => boolean): Element[] {
+    return this.getElements().filter((el) => condition(el));
   }
 
   /**
@@ -1019,7 +1090,7 @@ export class View extends Base {
    * @returns 维度字段的 Attribute 数组
    */
   public getLegendAttributes(): Attribute[] {
-    return (flatten(this.geometries.map((g: Geometry) => g.getGroupAttributes())) as unknown) as Attribute[];
+    return flatten(this.geometries.map((g: Geometry) => g.getGroupAttributes())) as unknown as Attribute[];
   }
 
   /**
@@ -1037,7 +1108,7 @@ export class View extends Base {
    * @returns G.Canvas 画布实例。
    */
   public getCanvas(): ICanvas {
-    return ((this.getRootView() as unknown) as Chart).canvas;
+    return (this.getRootView() as unknown as Chart).canvas;
   }
 
   /**
@@ -1355,6 +1426,10 @@ export class View extends Base {
     // 这里必须保留，原因是后面子 view 的 viewBBox 或根据 parent 的 coordinateBBox
     this.coordinateBBox = this.viewBBox.shrink(this.autoPadding.getPadding());
     this.adjustCoordinate();
+
+    // 刷新 tooltip (tooltip crosshairs 依赖 coordinate 位置)
+    const tooltipController = this.controllers.find((c) => c.name === 'tooltip');
+    tooltipController.update();
 
     // 同样递归处理子 views
     const views = this.views;
@@ -1778,7 +1853,7 @@ export class View extends Base {
 
   private getScaleFields() {
     const fields = [];
-    const tmpMap = {};
+    const tmpMap = new Map();
     const geometries = this.geometries;
     for (let i = 0; i < geometries.length; i++) {
       const geometry = geometries[i];
@@ -1790,7 +1865,7 @@ export class View extends Base {
 
   private getGroupedFields() {
     const fields = [];
-    const tmpMap = {};
+    const tmpMap = new Map();
     const geometries = this.geometries;
     for (let i = 0; i < geometries.length; i++) {
       const geometry = geometries[i];
@@ -1903,9 +1978,10 @@ export class View extends Base {
    * @param isUpdate
    */
   private renderComponents(isUpdate: boolean) {
+    const components = this.getComponents();
     // 先全部清空，然后 render
-    for (let i = 0; i < this.getComponents().length; i++) {
-      const co = this.getComponents()[i];
+    for (let i = 0; i < components.length; i++) {
+      const co = components[i];
       (co.component as GroupComponent).render();
     }
   }

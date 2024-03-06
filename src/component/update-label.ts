@@ -1,6 +1,6 @@
 import { Coordinate } from '@antv/coord';
 import { IGroup, IShape } from '@antv/g-base';
-import { each, get } from '@antv/util';
+import { each, get, isArray } from '@antv/util';
 import { doAnimate } from '../animate';
 import { getReplaceAttrs } from '../util/graphics';
 
@@ -32,7 +32,7 @@ export function updateLabel(fromShape: IGroup, toShape: IGroup, cfg: Cfg): void 
   fromShape.set('coordinate', coordinate);
   fromShape.set('visible', toShape.get('visible'));
 
-  fromShape.getChildren().forEach((fromChild, idx) => {
+  (fromShape.getChildren() || []).forEach((fromChild, idx) => {
     const toChild = toShape.getChildByIndex(idx) as IShape;
     if (!toChild) {
       fromShape.removeChild(fromChild);
@@ -60,7 +60,7 @@ export function updateLabel(fromShape: IGroup, toShape: IGroup, cfg: Cfg): void 
 
   // append
   each(toShape.getChildren(), (child, idx) => {
-    if (idx >= fromShape.getCount()) {
+    if (isArray(fromShape.getChildren()) && idx >= fromShape.getCount()) {
       if (!child.destroyed) {
         fromShape.add(child);
       }

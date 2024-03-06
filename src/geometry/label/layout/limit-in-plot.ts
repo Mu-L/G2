@@ -1,7 +1,7 @@
 import { each, pick } from '@antv/util';
 import { BBox, IGroup, IShape } from '../../../dependents';
 import { getCoordinateBBox } from '../../../util/coordinate';
-import { getEllipsisText } from '../../..//util/text';
+import { getEllipsisText } from '../../../util/text';
 import { translate } from '../../../util/transform';
 import { LabelItem } from '../interface';
 
@@ -38,10 +38,12 @@ export function limitInPlot(
   if (!coordinate) {
     return;
   }
-  const { minX: regionMinX, minY: regionMinY, maxX: regionMaxX, maxY: regionMaxY } = getCoordinateBBox(
-    coordinate,
-    margin
-  );
+  const {
+    minX: regionMinX,
+    minY: regionMinY,
+    maxX: regionMaxX,
+    maxY: regionMaxY,
+  } = getCoordinateBBox(coordinate, margin);
 
   each(labels, (label: IGroup) => {
     const { minX, minY, maxX, maxY, x, y, width, height } = label.getCanvasBBox();

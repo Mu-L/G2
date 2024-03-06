@@ -140,7 +140,10 @@ _
 
 #### 触发与反馈搭配约束
 
-每个交互环节中都存在一组 Trigger 和 Action。那么，是否所有的 trigger 和 action 都能组合？如果不能，怎么进行约束？错误搭配的后果是什么？我们需要从下面两个方面考虑如何实际触发与反馈的搭配约束：<br />**<br />**搭配的合理性**<br />我们用几个示例来说明这个问题：
+每个交互环节中都存在一组 Trigger 和 Action。那么，是否所有的 trigger 和 action 都能组合？如果不能，怎么进行约束？错误搭配的后果是什么？我们需要从下面两个方面考虑如何实际触发与反馈的搭配约束：<br />
+
+**搭配的合理性**<br />
+我们用几个示例来说明这个问题：
 
 - 鼠标进入 view ，鼠标变成十字形状（合理搭配）
 - 鼠标进入 view, legend 的项高亮（不合理搭配）
@@ -175,7 +178,7 @@ _
 - Element 名称：interval, line, point, area 等名称
 - Element 内部的图形元素的名称： line-label， point-label 等
 - 组件的名称：legend, axis, annotation
-- 组件的组成部分: legend-item, annotaion-line
+- 组件的组成部分: legend-item, annotation-line
 
 一个触发 Trigger 是对象名称与事件名进行组合。使用 `:`  连接对象与事件名，e.g. interval:click
 
@@ -219,7 +222,7 @@ _
 **交互环节中共享的信息**
 
 - 当前交互的 id
-- 当前交互执行到的 环节，阶段
+- 当前交互执行到的环节、阶段
 - 执行完毕的环节传递给后续环节的信息
 
 以框选过滤为例：

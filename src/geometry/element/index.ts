@@ -17,6 +17,8 @@ interface ElementCfg {
   shapeFactory: ShapeFactory;
   /** shape 容器 */
   container: IGroup;
+  /** element 的索引 */
+  elementIndex?: number;
   /** 虚拟 group，用户可以不传入 */
   offscreenGroup?: IGroup;
   /** 是否可见 */
@@ -32,6 +34,8 @@ export default class Element extends Base {
   public shapeFactory: ShapeFactory;
   /** shape 容器 */
   public container: IGroup;
+  /** element 索引 */
+  public elementIndex: number;
   /** 最后创建的图形对象 */
   public shape: IShape | IGroup;
   /** shape 的动画配置 */
@@ -41,7 +45,7 @@ export default class Element extends Base {
   /** element 对应的 Geometry 实例 */
   public geometry: Geometry;
   /** 保存 shape 对应的 label */
-  public labelShape: IGroup[];
+  public labelShape: IGroup[] = [];
 
   /** 绘制的 shape 类型 */
   private shapeType: string;
@@ -59,11 +63,12 @@ export default class Element extends Base {
   constructor(cfg: ElementCfg) {
     super(cfg);
 
-    const { shapeFactory, container, offscreenGroup, visible = true } = cfg;
+    const { shapeFactory, container, offscreenGroup, elementIndex, visible = true } = cfg;
     this.shapeFactory = shapeFactory;
     this.container = container;
     this.offscreenGroup = offscreenGroup;
     this.visible = visible;
+    this.elementIndex = elementIndex;
   }
 
   /**
@@ -146,7 +151,7 @@ export default class Element extends Base {
     this.shape = undefined;
     this.animate = undefined;
     this.geometry = undefined;
-    this.labelShape = undefined;
+    this.labelShape = [];
     this.model = undefined;
     this.data = undefined;
     this.offscreenGroup = undefined;
@@ -215,7 +220,7 @@ export default class Element extends Base {
       }
       states.push(stateName);
       if (stateName === 'active' || stateName === 'selected') {
-        shape.toFront();
+        shape?.toFront();
       }
     } else {
       if (index === -1) {
@@ -224,7 +229,9 @@ export default class Element extends Base {
       }
       states.splice(index, 1);
       if (stateName === 'active' || stateName === 'selected') {
-        shape.toBack();
+        const { sortZIndex, zIndexReversed } = this.geometry;
+        const idx = zIndexReversed ? this.geometry.elements.length - this.elementIndex : this.elementIndex;
+        sortZIndex ? shape.setZIndex(idx) : shape.set('zIndex', idx);
       }
     }
 
@@ -491,7 +498,7 @@ export default class Element extends Base {
             toAttrs: newAttrs,
             shapeModel: this.model,
           });
-        } else if (isEmpty(states)) {
+        } else if (!isEmpty(states)) {
           sourceShape.stopAnimate();
           sourceShape.animate(newAttrs, {
             duration: 300,

@@ -73,9 +73,7 @@ describe('#1899', () => {
     chart.animate(false);
     chart.data(data);
 
-    chart
-      .interval()
-      .position('hour*click_count');
+    chart.interval().position('hour*click_count');
 
     chart.option('slider', {
       start: 0.2,
@@ -87,12 +85,12 @@ describe('#1899', () => {
     await delay(50);
 
     // @ts-ignore
-    expect(chart.getController('slider').slider.component.get('minText')).toBe('02');
+    expect(chart.getController('slider').slider.component.get('minText')).toBe('03');
     // @ts-ignore
     expect(chart.getController('slider').slider.component.get('maxText')).toBe('10');
 
     // @ts-ignore
-    expect(chart.filteredData).toEqual(data.slice(2, 11));
+    expect(chart.filteredData).toEqual(data.slice(3, 11));
 
     chart.destroy();
   });
@@ -107,9 +105,7 @@ describe('#1899', () => {
     chart.animate(false);
     chart.data(data);
 
-    chart
-      .interval()
-      .position('hour*click_count');
+    chart.interval().position('hour*click_count');
 
     chart.option('scrollbar', {
       type: 'horizontal',
@@ -122,5 +118,5 @@ describe('#1899', () => {
 
     // @ts-ignore
     expect(chart.filteredData).toEqual(data.slice(0, 5));
-  })
+  });
 });

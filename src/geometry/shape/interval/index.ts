@@ -22,7 +22,9 @@ registerShape('interval', 'rect', {
 
     const backgroundCfg = cfg?.background;
     if (backgroundCfg) {
-      group = container.addGroup();
+      group = container.addGroup({
+        name: 'interval-group',
+      });
       const backgroundStyle = getBackgroundRectStyle(cfg);
       const backgroundPath = getBackgroundRectPath(cfg, this.parsePoints(cfg.points) as Point[], this.coordinate);
       group.addShape('path', {
@@ -30,6 +32,7 @@ registerShape('interval', 'rect', {
           ...backgroundStyle,
           path: backgroundPath,
         },
+        capture: false,
         zIndex: -1,
         name: BACKGROUND_SHAPE,
       });

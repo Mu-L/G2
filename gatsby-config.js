@@ -14,10 +14,11 @@ module.exports = {
   siteMetadata: {
     title: 'G2',
     description: 'The Grammar of Graphics in JavaScript',
-    siteUrl: 'https://g2.antv.vision',
+    siteUrl: 'https://g2-v4.antv.vision',
     githubUrl: repository.url,
     versions: {
-      '4.x': 'https://g2.antv.vision/',
+      '5.x': 'https://g2.antv.antgroup.com',
+      [version]: 'https://g2-v4.antv.vision',
       '3.x': 'https://g2-v3.antv.vision/',
       '2.x': 'https://antv.vision/old-site/g2/doc/index.html',
     },
@@ -48,6 +49,22 @@ module.exports = {
           en: 'Examples',
         },
         order: 0,
+      },
+    ],
+    ecosystems: [
+      {
+        name: {
+          zh: 'G2Plot（开箱即用的图表库）',
+          en: 'G2Plot (A charting library)',
+        },
+        url: 'https://g2plot.antv.vision',
+      },
+      {
+        name: {
+          zh: 'AntV ThemeSet（主题构建器）',
+          en: 'AntV ThemeSet',
+        },
+        url: 'https://theme-set.antv.vision',
       },
     ],
     docs: [
@@ -226,7 +243,7 @@ module.exports = {
         icon: 'candlestick',
         title: {
           zh: '烛形图',
-          en: 'K Chart',
+          en: 'Candlestick Chart',
         },
       },
       {
@@ -277,12 +294,23 @@ module.exports = {
           en: 'Other Chart',
         },
       },
+      {
+        slug: 'customize',
+        icon: 'other',
+        title: {
+          zh: '业务自定义',
+          en: 'Customize',
+        },
+      },
     ],
     docsearchOptions: {
       apiKey: '200ec461f4aa0bb4f0e761566f1a1336',
       indexName: 'antv_g2',
     },
     playground: {
+      devDependencies: {
+        typescript: 'latest',
+      },
       htmlCodeTemplate: `<!DOCTYPE html>
         <html>
           <head>
@@ -299,6 +327,10 @@ module.exports = {
             </script>
           </body>
         </html>`,
+    },
+    announcement: {
+      zh: '',
+      en: '',
     },
   },
 };

@@ -1,9 +1,11 @@
 import { firstValue, get, isEmpty, isNil, isNumber, isString, valuesOfKey } from '@antv/util';
+import { GROUP_ATTRS } from '../constant';
 import { getScale, Scale, Coordinate } from '../dependents';
 import { LooseObject, ScaleOption, ViewCfg } from '../interface';
 import { isFullCircle } from './coordinate';
 
-const dateRegex = /^(?:(?!0000)[0-9]{4}([-/.]+)(?:(?:0?[1-9]|1[0-2])\1(?:0?[1-9]|1[0-9]|2[0-8])|(?:0?[13-9]|1[0-2])\1(?:29|30)|(?:0?[13578]|1[02])\1(?:31))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:0[48]|[2468][048]|[13579][26])00)([-/.]+)0?2\2(?:29))(\s+([01]|([01][0-9]|2[0-3])):([0-9]|[0-5][0-9]):([0-9]|[0-5][0-9]))?$/;
+const dateRegex =
+  /^(?:(?!0000)[0-9]{4}([-/.]+)(?:(?:0?[1-9]|1[0-2])\1(?:0?[1-9]|1[0-9]|2[0-8])|(?:0?[13-9]|1[0-2])\1(?:29|30)|(?:0?[13578]|1[02])\1(?:31))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:0[48]|[2468][048]|[13579][26])00)([-/.]+)0?2\2(?:29))(\s+([01]|([01][0-9]|2[0-3])):([0-9]|[0-5][0-9]):([0-9]|[0-5][0-9]))?$/;
 
 /**
  * 获取字段对应数据的类型
@@ -19,6 +21,19 @@ function getDefaultType(value: any): string {
     type = 'cat';
   }
   return type;
+}
+
+/**
+ * using the scale type if user specified, otherwise infer the type
+ */
+export function inferScaleType(scale: Scale, scaleDef: ScaleOption = {}, attrType: string, geometryType: string): string {
+  if (scaleDef.type) return scaleDef.type;
+  // identity scale 直接返回
+  // geometry 类型有: edge,heatmap,interval,line,path,point,polygon,schema,voilin等；理论上，interval 下，可以用 linear scale 作为分组字段
+  if (scale.type !== 'identity' && GROUP_ATTRS.includes(attrType) && ['interval'].includes(geometryType)) {
+    return 'cat';
+  }
+  return scale.isCategory ? 'cat' : scale.type;
 }
 
 /**
@@ -42,7 +57,7 @@ export function createScaleByField(field: string | number, data?: LooseObject[] 
 
   const values = valuesOfKey(validData, field);
 
-  // 如果已经定义过这个度量
+  // 如果已经定义过这个度量 (fix-later 单纯从数据中，推断 scale type 是不精确的)
   const type = get(scaleDef, 'type', getDefaultType(values[0]));
   const ScaleCtor = getScale(type);
   return new ScaleCtor({
@@ -86,9 +101,13 @@ export function getName(scale: Scale): string {
  * 根据 scale values 和 coordinate 获取分类默认 range
  * @param scale 需要获取的 scale 实例
  * @param coordinate coordinate 实例
- * @param theme theme 
+ * @param theme theme
  */
-export function getDefaultCategoryScaleRange(scale: Scale, coordinate: Coordinate, theme: ViewCfg['theme']): Scale['range'] {
+export function getDefaultCategoryScaleRange(
+  scale: Scale,
+  coordinate: Coordinate,
+  theme: ViewCfg['theme']
+): Scale['range'] {
   const { values } = scale;
   const count = values.length;
   let range;
@@ -121,7 +140,7 @@ export function getDefaultCategoryScaleRange(scale: Scale, coordinate: Coordinat
  */
 export function getMaxScale(scale: Scale) {
   // 过滤values[]中 NaN/undefined/null 等
-  const values = scale.values.filter(item => !isNil(item) && !isNaN(item))
+  const values = scale.values.filter((item) => !isNil(item) && !isNaN(item));
 
   return Math.max(...values, isNil(scale.max) ? -Infinity : scale.max);
 }

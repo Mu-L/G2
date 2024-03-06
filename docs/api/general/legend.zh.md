@@ -76,16 +76,22 @@ _legendOption_ 配置如下：
 
 适用于 <tag color="green" text="分类图例">分类图例</tag>，当图例项过多时是否进行分页。
 
+### legendOption.maxRow
+
+<description> _number_ **optional** </description>
+
+适用于 <tag color="green" text="分类图例">分类图例</tag>，当图例项过多分页时，可以设置最大行数（仅适用于 `layout: 'horizontal'`），默认为：1。
+
 ### legendOption.pageNavigator
 
 <description> _LegendPageNavigatorCfg_ **optional** </description>
 
 适用于 <tag color="green" text="分类图例">分类图例</tag>，对图例分页器进行主题样式设置。_LegendPageNavigatorCfg_ 配置如下：
 
-| 参数名 | 类型                  | 默认值 | 描述           |
-| ------ | --------------------- | ------ | -------------- |
-| marker | _PageNavigatorMarker_ | -      | 分页器指示箭头配置项    |
-| text   | _PageNavigatorText_   | -      | 分页器指示文本配置项    |
+| 参数名 | 类型                  | 默认值 | 描述                 |
+| ------ | --------------------- | ------ | -------------------- |
+| marker | _PageNavigatorMarker_ | -      | 分页器指示箭头配置项 |
+| text   | _PageNavigatorText_   | -      | 分页器指示文本配置项 |
 
 示例：
 
@@ -122,11 +128,11 @@ pageNavigator: {
 ```ts
 chart.legend('type', {
   selected: {
-    '分类一': true,
-    '分类二': false,
-    '分类三': false,
-  }
-})
+    分类一: true,
+    分类二: false,
+    分类三: false,
+  },
+});
 ```
 
 <playground path='interaction/component/demo/legend-focus.ts' rid='legend-selected'></playground>
@@ -160,11 +166,36 @@ chart.legend('type', {
 
 适用于 <tag color="green" text="分类图例">分类图例</tag>，图例项 name 文本的配置。_LegendItemNameCfg_ 配置如下：
 
-| 参数名    | 类型                                                    | 是否必选 | 默认值 | 描述                             |
-| --------- | ------------------------------------------------------- | -------- | ------ | -------------------------------- |
-| style     | [ShapeAttrs](/zh/docs/api/shape/shape-attrs)            |          | -      | 文本样式配置项                   |
-| spacing   | number                                                  |          | -      | 图例项 marker 同后面 name 的间距 |
-| formatter | `(text: string, item: ListItem, index: number) => any;` |          |        | 格式化函数                       |
+| 参数名    | 类型                                                                               | 是否必选 | 默认值 | 描述                             |
+| --------- | ---------------------------------------------------------------------------------- | -------- | ------ | -------------------------------- |
+| style     | _((item: ListItem, index: number, items: ListItem[]) => ShapeAttrs) \| ShapeAttrs_ |          | -      | 文本样式配置项                   |
+| spacing   | number                                                                             |          | -      | 图例项 marker 同后面 name 的间距 |
+| formatter | `(text: string, item: ListItem, index: number) => any;`                            |          |        | 格式化函数                       |
+
+其中, `ShapeAttrs` 详细配置见：[文档](/zh/docs/api/shape/shape-attrs)；`ListItem` 配置如下：
+
+```ts
+type ListItem = {
+  /**
+   * 名称 {string}
+   */
+  name: string;
+  /**
+   * 值 {any}
+   */
+  value: any;
+  /**
+   * 图形标记 {object|string}
+   */
+  marker?: Marker | string;
+}
+
+type Marker = {
+  symbol? string;
+  style?: ShapeAttrs;
+  spacing?: number;
+};
+```
 
 ### legendOption.itemSpacing
 
@@ -178,11 +209,50 @@ chart.legend('type', {
 
 适用于 <tag color="green" text="分类图例">分类图例</tag>，图例项 value 附加值的配置项。_LegendItemValueCfg_ 配置如下：
 
-| 参数名     | 类型                                                    | 是否必选 | 默认值  | 描述                                               |
-| ---------- | ------------------------------------------------------- | -------- | ------- | -------------------------------------------------- |
-| style      | [ShapeAttrs](/zh/docs/api/shape/shape-attrs)            |          | -       | 文本样式配置项                                     |
-| alignRight | boolean                                                 |          | `false` | 是否右对齐，默认为 false，仅当设置图例项宽度时生效 |
-| formatter  | `(text: string, item: ListItem, index: number) => any;` |          |         | 格式化函数                                         |
+| 参数名     | 类型                                                                               | 是否必选 | 默认值  | 描述                                               |
+| ---------- | ---------------------------------------------------------------------------------- | -------- | ------- | -------------------------------------------------- |
+| alignRight | boolean                                                                            |          | `false` | 是否右对齐，默认为 false，仅当设置图例项宽度时生效 |
+| style      | _((item: ListItem, index: number, items: ListItem[]) => ShapeAttrs) \| ShapeAttrs_ |          | -       | 文本样式配置项                                     |
+| formatter  | `(text: string, item: ListItem, index: number) => any;`                            |          |         | 格式化函数                                         |
+
+其中, `ShapeAttrs` 详细配置见：[文档](/zh/docs/api/shape/shape-attrs)；`ListItem` 配置如下：
+
+```ts
+type ListItem = {
+  /**
+   * 名称 {string}
+   */
+  name: string;
+  /**
+   * 值 {any}
+   */
+  value: any;
+  /**
+   * 图形标记 {object|string}
+   */
+  marker?: Marker | string;
+}
+
+type Marker = {
+  symbol? string;
+  style?: ShapeAttrs;
+  spacing?: number;
+};
+```
+
+### legendOption.radio
+
+<description> _LegendRadio_ **optional** </description>
+
+适用于 <tag color="green" text="分类图例">分类图例</tag>，当 radio 为 truthy 的时候开启正反选功能：鼠标移动到图例上面的时候会出现 radio 按钮，点击按钮的时候，如果当前图例没有被选中，那么只选中该图例，并且展示对应数据，否者恢复默认状态。
+
+_LegendRadio_ 配置如下：
+
+| 参数名     | 类型                                                                               | 是否必选 | 默认值  | 描述                                               |
+| ---------- | ---------------------------------------------------------------------------------- | -------- | ------- | -------------------------------------------------- |
+| style      | _ShapeAttrs_ |          | -       | 文本样式配置项                                     |
+| tip      | _string_ |          | -       | 提示文案                                   |
+                           
 
 ### legendOption.animate
 
@@ -212,11 +282,19 @@ chart.legend('type', {
 
 ### legendOption.marker
 
-<description> _MarkerCfg_ **optional** </description>
+<description> _MarkerCfg | MarkerCfgCallback_ **optional** </description>
 
-适用于 <tag color="green" text="分类图例">分类图例</tag>，图例项的 marker 图标的配置。
+适用于 <tag color="green" text="分类图例">分类图例</tag>，图例项的 marker 图标配置，也支持通过回调的方式设置。
 
 `markdown:docs/common/marker-cfg.md`
+
+```sign
+type LegendItem = { name: string; value: string; } & MarkerCfg;
+
+type MarkerCfgCallback = (name: string, index: number, item: LegendItem) => MarkerCfg;
+```
+
+<playground path="component/legend/demo/marker-callback.ts" rid="legend-marker-callback"></playground>
 
 ### legendOption.min
 
@@ -230,17 +308,45 @@ chart.legend('type', {
 
 适用于 <tag color="cyan" text="连续图例">连续图例</tag>，选择范围的最大值。
 
-### legendOption.maxWidth
+### legendOption.maxItemWidth
 
 <description> _number_ **optional** </description>
 
 适用于 <tag color="green" text="分类图例">分类图例</tag>，图例项最大宽度设置。
 
+### legendOption.maxWidthRatio
+
+<description> _number_ **optional**. 取值范围：[0, 1], 默认: 0.25</description>
+
+适用于 <tag color="green" text="分类图例">分类图例</tag>，图例项容器最大宽度比例（以 view 的 bbox 容器大小为参照）设置，如果不需要该配置，可以设置为 `null`。
+
+### legendOption.maxHeightRatio
+
+<description> _number_ **optional**. 取值范围：[0, 1], 默认: 0.25</description>
+
+适用于 <tag color="green" text="分类图例">分类图例</tag>，图例项容器最大高度比例（以 view 的 bbox 容器大小为参照）设置，如果不需要该配置，可以设置为 `null`。
+
+### legendOption.maxWidth
+
+<description> _number_ **optional** </description>
+
+适用于 <tag color="green" text="分类图例">分类图例</tag>，图例项容器最大宽度设置。实际上，图例项容器最大宽度的计算如下：
+
+```sign
+const viewBBox = this.view.viewBBox;
+const maxWidth = Math.min(maxWidth, maxWidthRatio * viewBBox.width);
+```
+
 ### legendOption.maxHeight
 
 <description> _number_ **optional** </description>
 
-适用于 <tag color="green" text="分类图例">分类图例</tag>，图例项最大高度设置。
+适用于 <tag color="green" text="分类图例">分类图例</tag>，图例项容器最大高度设置。实际上，图例项容器最大宽度的计算如下：
+
+```sign
+const viewBBox = this.view.viewBBox;
+const maxHeight = Math.min(maxHeight, maxHeightRatio * viewBBox.height);
+```
 
 ### legendOption.offsetX
 

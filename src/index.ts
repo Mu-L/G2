@@ -26,6 +26,7 @@ import Path, { PathCfg } from './geometry/path';
 import Point from './geometry/point';
 import Polygon from './geometry/polygon';
 import Schema from './geometry/schema';
+import Violin from './geometry/violin';
 
 registerGeometry('Polygon', Polygon);
 registerGeometry('Interval', Interval);
@@ -36,6 +37,7 @@ registerGeometry('Line', Line);
 registerGeometry('Area', Area);
 registerGeometry('Edge', Edge);
 registerGeometry('Heatmap', Heatmap);
+registerGeometry('Violin', Violin);
 
 // 引入所有内置的 shapes
 import './geometry/shape/area/line';
@@ -62,6 +64,9 @@ import './geometry/shape/schema/box';
 import './geometry/shape/schema/candle';
 
 import './geometry/shape/polygon/square';
+
+import './geometry/shape/violin/smooth';
+import './geometry/shape/violin/hollow';
 
 // 注册 Geometry 内置的 label
 import { registerGeometryLabel } from './core';
@@ -172,17 +177,17 @@ import SiblingTooltip from './interaction/action/component/tooltip/sibling';
 import TooltipAction from './interaction/action/component/tooltip/geometry';
 import EllipsisTextAction from './interaction/action/component/tooltip/ellipsis-text';
 
-import ElmentActive from './interaction/action/element/active';
+import ElementActive from './interaction/action/element/active';
 import ElementLinkByColor from './interaction/action/element/link-by-color';
-import ElmentRangeActive from './interaction/action/element/range-active';
-import ElmentSingleActive from './interaction/action/element/single-active';
+import ElementRangeActive from './interaction/action/element/range-active';
+import ElementSingleActive from './interaction/action/element/single-active';
 
-import ElmentHighlight from './interaction/action/element/highlight';
-import ElmentHighlightByColor from './interaction/action/element/highlight-by-color';
-import ElmentHighlightByX from './interaction/action/element/highlight-by-x';
+import ElementHighlight from './interaction/action/element/highlight';
+import ElementHighlightByColor from './interaction/action/element/highlight-by-color';
+import ElementHighlightByX from './interaction/action/element/highlight-by-x';
 
-import ElmentRangeHighlight from './interaction/action/element/range-highlight';
-import ElmentSingleHighlight from './interaction/action/element/single-highlight';
+import ElementRangeHighlight, { ELEMENT_RANGE_HIGHLIGHT_EVENTS } from './interaction/action/element/range-highlight';
+import ElementSingleHighlight from './interaction/action/element/single-highlight';
 
 import ElementRangeSelected from './interaction/action/element/range-selected';
 import ElementSelected from './interaction/action/element/selected';
@@ -193,6 +198,8 @@ import ListHighlight from './interaction/action/component/list-highlight';
 import ListSelected from './interaction/action/component/list-selected';
 import ListUnchecked from './interaction/action/component/list-unchecked';
 import ListChecked from './interaction/action/component/list-checked';
+import ListFocus from './interaction/action/component/list-focus';
+import ListRadio from './interaction/action/component/list-radio';
 
 import CircleMask from './interaction/action/mask/circle';
 import DimMask from './interaction/action/mask/dim-rect';
@@ -200,9 +207,15 @@ import PathMask from './interaction/action/mask/path';
 import RectMask from './interaction/action/mask/rect';
 import SmoothPathMask from './interaction/action/mask/smooth-path';
 
+import RectMultiMask from './interaction/action/mask/multiple/rect';
+import DimRectMultiMask from './interaction/action/mask/multiple/dim-rect';
+import CircleMultiMask from './interaction/action/mask/multiple/circle';
+import PathMultiMask from './interaction/action/mask/multiple/path';
+import SmoothPathMultiMask from './interaction/action/mask/multiple/smooth-path';
+
 import CursorAction from './interaction/action/cursor';
 import DataFilter from './interaction/action/data/filter';
-import DataRangeFilter from './interaction/action/data/range-filter';
+import DataRangeFilter, { BRUSH_FILTER_EVENTS } from './interaction/action/data/range-filter';
 import SiblingFilter from './interaction/action/data/sibling-filter';
 
 import ElementFilter from './interaction/action/element/filter';
@@ -212,21 +225,23 @@ import ViewDrag from './interaction/action/view/drag';
 import ViewMove from './interaction/action/view/move';
 import ScaleTranslate from './interaction/action/view/scale-translate';
 import ScaleZoom from './interaction/action/view/scale-zoom';
+import MousewheelScroll from './interaction/action/view/mousewheel-scroll';
+import AxisDescription from './interaction/action/component/axis/axis-description'
 
 registerAction('tooltip', TooltipAction);
 registerAction('sibling-tooltip', SiblingTooltip);
 registerAction('ellipsis-text', EllipsisTextAction);
-registerAction('element-active', ElmentActive);
-registerAction('element-single-active', ElmentSingleActive);
-registerAction('element-range-active', ElmentRangeActive);
+registerAction('element-active', ElementActive);
+registerAction('element-single-active', ElementSingleActive);
+registerAction('element-range-active', ElementRangeActive);
 
-registerAction('element-highlight', ElmentHighlight);
-registerAction('element-highlight-by-x', ElmentHighlightByX);
-registerAction('element-highlight-by-color', ElmentHighlightByColor);
+registerAction('element-highlight', ElementHighlight);
+registerAction('element-highlight-by-x', ElementHighlightByX);
+registerAction('element-highlight-by-color', ElementHighlightByColor);
 
-registerAction('element-single-highlight', ElmentSingleHighlight);
-registerAction('element-range-highlight', ElmentRangeHighlight);
-registerAction('element-sibling-highlight', ElmentRangeHighlight, {
+registerAction('element-single-highlight', ElementSingleHighlight);
+registerAction('element-range-highlight', ElementRangeHighlight);
+registerAction('element-sibling-highlight', ElementRangeHighlight, {
   effectSiblings: true,
   effectByRecord: true,
 });
@@ -242,6 +257,8 @@ registerAction('list-selected', ListSelected);
 registerAction('list-highlight', ListHighlight);
 registerAction('list-unchecked', ListUnchecked);
 registerAction('list-checked', ListChecked);
+registerAction('list-focus', ListFocus);
+registerAction('list-radio', ListRadio);
 
 registerAction('legend-item-highlight', ListHighlight, {
   componentNames: ['legend'],
@@ -250,6 +267,7 @@ registerAction('legend-item-highlight', ListHighlight, {
 registerAction('axis-label-highlight', ListHighlight, {
   componentNames: ['axis'],
 });
+registerAction('axis-description', AxisDescription)
 
 registerAction('rect-mask', RectMask);
 registerAction('x-rect-mask', DimMask, { dim: 'x' });
@@ -258,6 +276,13 @@ registerAction('circle-mask', CircleMask);
 registerAction('path-mask', PathMask);
 registerAction('smooth-path-mask', SmoothPathMask);
 
+registerAction('rect-multi-mask', RectMultiMask);
+registerAction('x-rect-multi-mask', DimRectMultiMask, { dim: 'x' });
+registerAction('y-rect-multi-mask', DimRectMultiMask, { dim: 'y' });
+registerAction('circle-multi-mask', CircleMultiMask);
+registerAction('path-multi-mask', PathMultiMask);
+registerAction('smooth-path-multi-mask', SmoothPathMultiMask);
+
 registerAction('cursor', CursorAction);
 registerAction('data-filter', DataFilter);
 
@@ -265,8 +290,8 @@ registerAction('brush', DataRangeFilter);
 registerAction('brush-x', DataRangeFilter, { dims: ['x'] });
 registerAction('brush-y', DataRangeFilter, { dims: ['y'] });
 registerAction('sibling-filter', SiblingFilter);
-registerAction('sibling-x-filter', SiblingFilter);
-registerAction('sibling-y-filter', SiblingFilter);
+registerAction('sibling-x-filter', SiblingFilter, { dims: 'x' });
+registerAction('sibling-y-filter', SiblingFilter, { dims: 'y' });
 
 registerAction('element-filter', ElementFilter);
 registerAction('element-sibling-filter', ElementSiblingFilter);
@@ -282,8 +307,11 @@ registerAction('reset-button', ButtonAction, {
   text: 'reset',
 });
 
+registerAction('mousewheel-scroll', MousewheelScroll);
+
 // 注册默认的 Interaction 交互行为
 import { registerInteraction } from './core';
+import { isMultipleMask } from './interaction/action/util';
 
 function isPointInView(context: IInteractionContext) {
   return context.isInPlot();
@@ -329,6 +357,7 @@ registerInteraction('ellipsis-text', {
     { trigger: 'legend-item-name:mouseleave', action: 'ellipsis-text:hide' },
     { trigger: 'legend-item-name:touchend', action: 'ellipsis-text:hide' },
     { trigger: 'axis-label:mouseleave', action: 'ellipsis-text:hide' },
+    { trigger: 'axis-label:mouseout', action: 'ellipsis-text:hide' },
     { trigger: 'axis-label:touchend', action: 'ellipsis-text:hide' },
   ],
 });
@@ -544,6 +573,62 @@ registerInteraction('element-path-highlight', {
   rollback: [{ trigger: 'dblclick', action: 'path-mask:hide' }],
 });
 
+registerInteraction('brush-x-multi', {
+  showEnable: [
+    { trigger: 'plot:mouseenter', action: 'cursor:crosshair' },
+    { trigger: 'mask:mouseenter', action: 'cursor:move' },
+    { trigger: 'plot:mouseleave', action: 'cursor:default' },
+    { trigger: 'mask:mouseleave', action: 'cursor:crosshair' },
+  ],
+  start: [
+    {
+      trigger: 'mousedown',
+      isEnable: isPointInView,
+      action: ['x-rect-multi-mask:start', 'x-rect-multi-mask:show'],
+    },
+    {
+      trigger: 'mask:dragstart',
+      action: ['x-rect-multi-mask:moveStart'],
+    },
+  ],
+  processing: [
+    {
+      trigger: 'mousemove',
+      isEnable: (context) => !isMultipleMask(context),
+      action: ['x-rect-multi-mask:resize'],
+    },
+    {
+      trigger: 'multi-mask:change',
+      action: 'element-range-highlight:highlight',
+    },
+    {
+      trigger: 'mask:drag',
+      action: ['x-rect-multi-mask:move'],
+    },
+  ],
+  end: [
+    {
+      trigger: 'mouseup',
+      action: ['x-rect-multi-mask:end'],
+    },
+    { trigger: 'mask:dragend', action: ['x-rect-multi-mask:moveEnd'] },
+  ],
+  rollback: [
+    {
+      trigger: 'dblclick',
+      action: ['x-rect-multi-mask:clear', 'cursor:crosshair'],
+    },
+    {
+      trigger: 'multi-mask:clearAll',
+      action: ['element-range-highlight:clear'],
+    },
+    {
+      trigger: 'multi-mask:clearSingle',
+      action: ['element-range-highlight:highlight'],
+    },
+  ],
+});
+
 // 点击选中，允许取消
 registerInteraction('element-single-selected', {
   start: [{ trigger: 'element:click', action: 'element-single-selected:toggle' }],
@@ -552,10 +637,31 @@ registerInteraction('element-single-selected', {
 // 筛选数据
 registerInteraction('legend-filter', {
   showEnable: [
-    { trigger: 'legend-item:mouseenter', action: 'cursor:pointer' },
-    { trigger: 'legend-item:mouseleave', action: 'cursor:default' },
+    { trigger: 'legend-item:mouseenter', action: ['cursor:pointer', 'list-radio:show'] },
+    { trigger: 'legend-item:mouseleave', action: ['cursor:default', 'list-radio:hide'] },
   ],
-  start: [{ trigger: 'legend-item:click', action: ['list-unchecked:toggle', 'data-filter:filter'] }],
+  start: [
+    {
+      trigger: 'legend-item:click',
+      isEnable: (context) => {
+        return !context.isInShape('legend-item-radio');
+      },
+      action: ['legend-item-highlight:reset', 'element-highlight:reset', 'list-unchecked:toggle', 'data-filter:filter', 'list-radio:show'],
+    },
+    //  正反选数据: 只有当 radio === truthy 的时候才会有 legend-item-radio 这个元素
+    {
+      trigger: 'legend-item-radio:mouseenter',
+      action: ['list-radio:showTip'],
+    },
+    {
+      trigger: 'legend-item-radio:mouseleave',
+      action: ['list-radio:hideTip'],
+    },
+    {
+      trigger: 'legend-item-radio:click',
+      action: ['list-focus:toggle', 'data-filter:filter', 'list-radio:show'],
+    },
+  ],
 });
 
 // 筛选数据
@@ -573,7 +679,7 @@ registerInteraction('legend-visible-filter', {
     { trigger: 'legend-item:mouseenter', action: 'cursor:pointer' },
     { trigger: 'legend-item:mouseleave', action: 'cursor:default' },
   ],
-  start: [{ trigger: 'legend-item:click', action: ['list-unchecked:toggle', 'element-filter:filter'] }],
+  start: [{ trigger: 'legend-item:click', action: ['legend-item-highlight:reset', 'element-highlight:reset', 'list-unchecked:toggle', 'element-filter:filter'] }],
 });
 
 // 出现背景框
@@ -581,6 +687,12 @@ registerInteraction('active-region', {
   start: [{ trigger: 'plot:mousemove', action: 'active-region:show' }],
   end: [{ trigger: 'plot:mouseleave', action: 'active-region:hide' }],
 });
+
+// 显示坐标轴标题详情信息
+registerInteraction('axis-description', {
+  start: [{ trigger: 'axis-description:mousemove', action: 'axis-description:show' }],
+  end: [{ trigger: 'axis-description:mouseleave', action: 'axis-description:hide' }]
+})
 
 function isWheelDown(event) {
   event.gEvent.preventDefault();
@@ -610,6 +722,10 @@ registerInteraction('view-zoom', {
 registerInteraction('sibling-tooltip', {
   start: [{ trigger: 'plot:mousemove', action: 'sibling-tooltip:show' }],
   end: [{ trigger: 'plot:mouseleave', action: 'sibling-tooltip:hide' }],
+});
+
+registerInteraction('plot-mousewheel-scroll', {
+  start: [{ trigger: 'plot:mousewheel', action: 'mousewheel-scroll:scroll' }],
 });
 
 // 让 TS 支持 View 原型上添加的创建 Geometry 方法的智能提示
@@ -675,10 +791,18 @@ declare module './chart/view' {
      * @returns heatmap 返回 Heatmap 实例。
      */
     heatmap(cfg?: Partial<GeometryCfg>): Heatmap;
+    /**
+     * 创建 Violin 几何标记。
+     * @param [cfg] 传入 Violin 构造函数的配置。
+     * @returns violin 返回 Violin 实例。
+     */
+    violin(cfg?: Partial<GeometryCfg>): Violin;
   }
 }
 
 // 暴露一些常量
 export { VIEW_LIFE_CIRCLE } from './constant';
+/** brush 范围筛选的一些事件常量 */
+export { BRUSH_FILTER_EVENTS, ELEMENT_RANGE_HIGHLIGHT_EVENTS };
 
 export * from './core';

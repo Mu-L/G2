@@ -19,7 +19,7 @@ import {
 } from '@antv/util';
 import { doGroupAppearAnimate, getDefaultAnimateCfg } from '../animate';
 import Base from '../base';
-import { FIELD_ORIGIN, GROUP_ATTRS } from '../constant';
+import { FIELD_ORIGIN, GEOMETRY_LIFE_CIRCLE, GROUP_ATTRS } from '../constant';
 import { BBox, Coordinate, IGroup, IShape, Scale } from '../dependents';
 import {
   AdjustOption,
@@ -57,6 +57,8 @@ import { getShapeFactory } from './shape/base';
 import { group } from './util/group-data';
 import { isModelChange } from './util/is-model-change';
 import { parseFields } from './util/parse-fields';
+import { diff } from './util/diff';
+import { inferScaleType } from '../util/scale';
 import { getXDimensionLength } from '../util/coordinate';
 
 /** @ignore */
@@ -66,7 +68,9 @@ interface AttributeInstanceCfg {
   values?: string[] | number[];
   scales?: Scale[];
 }
-
+interface DimValuesMapType {
+  [dim: string]: number[];
+}
 /** @ignore */
 interface AdjustInstanceCfg {
   type: AdjustType;
@@ -96,6 +100,8 @@ interface AdjustInstanceCfg {
   minColumnWidth?: number;
   /** 柱宽比例 */
   columnWidthRatio?: number;
+  /** 用户自定义的dimValuesMap */
+  dimValuesMap?: DimValuesMapType;
 }
 
 /** geometry.init() 传入参数 */
@@ -131,6 +137,10 @@ export interface GeometryCfg {
   sortable?: boolean;
   /** elements 的 zIndex 默认按顺序提升，通过 zIndexReversed 可以反序，从而数据越前，层级越高 */
   zIndexReversed?: boolean;
+  /** 是否需要对 zIndex 进行 sort。因为耗时长，由具体场景自行决定 */
+  sortZIndex?: boolean;
+  /** 延迟渲染 Geometry 数据标签. 设置为 true 时，会在浏览器空闲时期被调用, 也可以指定具体 timeout 时间 */
+  useDeferredLabel?: boolean | number;
   /** 是否可见 */
   visible?: boolean;
   /** 主题配置 */
@@ -152,24 +162,10 @@ export interface GeometryCfg {
   multiplePieWidthRatio?: number;
 }
 
-// 根据 elementId 查找对应的 label，因为有可能一个 element 对应多个 labels，所以在给 labels 打标识时做了处理
-// 打标规则详见 ./label/base.ts#L263
-function filterLabelsById(id: string, labelsMap: Record<string, IGroup>) {
-  const labels = [];
-  each(labelsMap, (label: IGroup, labelId: string) => {
-    const elementId = labelId.split(' ')[0];
-    if (elementId === id) {
-      labels.push(label);
-    }
-  });
-
-  return labels;
-}
-
 /**
  * Geometry 几何标记基类，主要负责数据到图形属性的映射以及绘制逻辑。
  */
-export default class Geometry extends Base {
+export default class Geometry<S extends ShapePoint = ShapePoint> extends Base {
   /** Geometry 几何标记类型。 */
   public readonly type: string = 'base';
   /** ShapeFactory 对应的类型。 */
@@ -258,7 +254,10 @@ export default class Geometry extends Base {
   /** 多层饼图/环图占比 */
   protected multiplePieWidthRatio: number;
   /** elements 的 zIndex 默认按顺序提升，通过 zIndexReversed 可以反序，从而数据越前，层级越高 */
-  protected zIndexReversed?: boolean;
+  public zIndexReversed?: boolean;
+  /** 是否需要对 zIndex 进行 sort。因为耗时长，由具体场景自行决定 */
+  public sortZIndex?: boolean;
+  protected useDeferredLabel?: null | number;
 
   /** 虚拟 Group，用于图形更新 */
   private offscreenGroup: IGroup;
@@ -292,6 +291,8 @@ export default class Geometry extends Base {
       roseWidthRatio,
       multiplePieWidthRatio,
       zIndexReversed,
+      sortZIndex,
+      useDeferredLabel,
     } = cfg;
 
     this.container = container;
@@ -312,6 +313,8 @@ export default class Geometry extends Base {
     this.roseWidthRatio = roseWidthRatio;
     this.multiplePieWidthRatio = multiplePieWidthRatio;
     this.zIndexReversed = zIndexReversed;
+    this.sortZIndex = sortZIndex;
+    this.useDeferredLabel = useDeferredLabel ? (typeof useDeferredLabel === 'number' ? useDeferredLabel : Infinity) : null;
   }
 
   /**
@@ -925,21 +928,21 @@ export default class Geometry extends Base {
     }
 
     this.defaultSize = undefined;
-    this.elements = [];
     this.elementsMap = {};
+    this.elements = [];
     const offscreenGroup = this.getOffscreenGroup();
     offscreenGroup.clear();
 
     const beforeMappingData = this.beforeMappingData;
     const dataArray = this.beforeMapping(beforeMappingData);
 
-    const mappingArray = [];
-    for (let index = 0, length = dataArray.length; index < length; index++) {
-      const eachGroup = dataArray[index];
-      const mappingData = this.mapping(eachGroup);
-      mappingArray.push(mappingData);
-      this.createElements(mappingData, index, isUpdate);
+    this.dataArray = new Array(dataArray.length);
+    for (let i = 0; i < dataArray.length; i++) {
+      const data = dataArray[i];
+      this.dataArray[i] = this.mapping(data);
     }
+    this.updateElements(this.dataArray, isUpdate);
+    this.lastElementsMap = this.elementsMap;
 
     if (this.canDoGroupAnimation(isUpdate)) {
       // 如果用户没有配置 appear.animation，就默认走整体动画
@@ -957,19 +960,21 @@ export default class Geometry extends Base {
 
     // 添加 label
     if (this.labelOption) {
-      this.renderLabels(flatten(mappingArray), isUpdate);
+      const deferred = this.useDeferredLabel;
+      const callback = (() => this.renderLabels(flatten(this.dataArray) as unknown as MappingDatum[], isUpdate)).bind(this);
+      if (typeof deferred === 'number') {
+        // Use `requestIdleCallback` to render labels in idle time (like react fiber)
+        const timeout = (typeof deferred === 'number' && deferred !== Infinity) ? deferred : 0;
+        if (!window.requestIdleCallback) {
+          setTimeout(callback, timeout);
+        } else {
+          const options = timeout && timeout !== Infinity ? { timeout } : undefined;
+          window.requestIdleCallback(callback, options);
+        }
+      } else {
+        callback();
+      }
     }
-
-    this.dataArray = mappingArray;
-
-    // 销毁被删除的 elements
-    each(this.lastElementsMap, (deletedElement: Element) => {
-      // 更新动画配置，用户有可能在更新之前有对动画进行配置操作
-      deletedElement.animate = this.animateOption;
-      deletedElement.destroy();
-    });
-
-    this.lastElementsMap = this.elementsMap;
 
     // 缓存，用于更新
     this.lastAttributeOption = {
@@ -1112,8 +1117,25 @@ export default class Geometry extends Base {
     return attr.mapping(...params);
   }
 
+  /**
+   * 获取对应的 adjust 实例
+   * @param adjustType
+   * @returns
+   */
   public getAdjust(adjustType: string) {
     return this.adjusts[adjustType];
+  }
+
+  /**
+   * 获得 coordinate 实例
+   * @returns
+   */
+  public getCoordinate() {
+    return this.coordinate;
+  }
+
+  public getData() {
+    return this.data;
   }
 
   /**
@@ -1142,9 +1164,18 @@ export default class Geometry extends Base {
    * @returns
    */
   public getElementsBy(condition: (element: Element) => boolean): Element[] {
-    return this.elements.filter((element) => {
-      return condition(element);
-    });
+    return this.elements.filter((element) => condition(element));
+  }
+
+  /**
+   * 获取 Geometry 的所有 Elements。
+   *
+   * ```typescript
+   * getElements();
+   * ```
+   */
+  public getElements() {
+    return this.elements;
   }
 
   /**
@@ -1188,10 +1219,7 @@ export default class Geometry extends Base {
       id = `${xVal}-${yVal}`;
     }
 
-    let groupScales = this.groupScales;
-    if (isEmpty(groupScales)) {
-      groupScales = get(this.getAttribute('color'), 'scales', []);
-    }
+    const groupScales = this.groupScales;
 
     for (let index = 0, length = groupScales.length; index < length; index++) {
       const groupScale = groupScales[index];
@@ -1220,7 +1248,7 @@ export default class Geometry extends Base {
    */
   public getScaleFields(): string[] {
     const fields = [];
-    const tmpMap = {};
+    const tmpMap = new Map();
     const { attributeOption, labelOption, tooltipOption } = this;
     // 获取图形属性上的 fields
     for (const attributeType in attributeOption) {
@@ -1276,12 +1304,32 @@ export default class Geometry extends Base {
   }
 
   /**
+   * 获得所有的字段
+   */
+  public getFields() {
+    const uniqMap = new Map<string, boolean>();
+    const fields = [];
+
+    Object.values(this.attributeOption).forEach((cfg) => {
+      const fs = cfg?.fields || [];
+      fs.forEach((f) => {
+        if (!uniqMap.has(f)) {
+          fields.push(f);
+        }
+        uniqMap.set(f, true);
+      });
+    }, []);
+
+    return fields;
+  }
+
+  /**
    * 获取当前配置中的所有分组 & 分类的字段。
    * @return fields string[]
    */
   public getGroupFields(): string[] {
     const groupFields = [];
-    const tmpMap = {}; // 用于去重过滤
+    const tmpMap = new Map(); // 用于去重过滤
     for (let index = 0, length = GROUP_ATTRS.length; index < length; index++) {
       const attributeName = GROUP_ATTRS[index];
       const cfg = this.attributeOption[attributeName];
@@ -1299,6 +1347,22 @@ export default class Geometry extends Base {
   public getXYFields() {
     const [x, y] = this.attributeOption.position.fields;
     return [x, y];
+  }
+
+  /**
+   * x 字段
+   * @returns
+   */
+  public getXField(): string {
+    return get(this.getXYFields(), [0]);
+  }
+
+  /**
+   * y 字段
+   * @returns
+   */
+  public getYField(): string {
+    return get(this.getXYFields(), [1]);
   }
 
   /**
@@ -1373,7 +1437,7 @@ export default class Geometry extends Base {
    * @param obj 经过分组 -> 数字化 -> adjust 调整后的数据记录
    * @returns
    */
-  protected createShapePointsCfg(obj: Datum): ShapePoint {
+  protected createShapePointsCfg(obj: Datum): S {
     const xScale = this.getXScale();
     const yScale = this.getYScale();
     const x = this.normalizeValues(obj[xScale.field], xScale);
@@ -1389,7 +1453,7 @@ export default class Geometry extends Base {
       x,
       y,
       y0: yScale ? yScale.scale(this.getYMinValue()) : undefined,
-    };
+    } as S;
   }
 
   /**
@@ -1398,7 +1462,7 @@ export default class Geometry extends Base {
    * @param [isUpdate] 是否处于更新阶段
    * @returns element 返回创建的 Element 实例
    */
-  protected createElement(mappingDatum: MappingDatum, isUpdate: boolean = false): Element {
+  protected createElement(mappingDatum: MappingDatum, index: number, isUpdate: boolean = false): Element {
     const { container } = this;
 
     const shapeCfg = this.getDrawCfg(mappingDatum); // 获取绘制图形的配置信息
@@ -1408,6 +1472,7 @@ export default class Geometry extends Base {
       shapeFactory,
       container,
       offscreenGroup: this.getOffscreenGroup(),
+      elementIndex: index,
     });
     element.animate = this.animateOption;
     element.geometry = this;
@@ -1458,52 +1523,76 @@ export default class Geometry extends Base {
     return cfg;
   }
 
-  /**
-   * 创建所有的 Elements。
-   * @param mappingData
-   * @param [isUpdate]
-   * @returns elements
-   */
-  protected createElements(mappingData: MappingDatum[], index: number, isUpdate: boolean = false): Element[] {
-    const { lastElementsMap, elementsMap, elements } = this;
-    for (let subIndex = 0, length = mappingData.length; subIndex < length; subIndex++) {
-      const mappingDatum = mappingData[subIndex];
-      let id = this.getElementId(mappingDatum);
-      if (elementsMap[id]) {
-        // 存在重复数据，则根据再根据 index 进行区分
-        id = `${id}-${index}-${subIndex}`;
+  protected updateElements(mappingDataArray: MappingDatum[][], isUpdate: boolean = false): void {
+    const keyDatum = new Map<string, MappingDatum>();
+    const keys: string[] = [];
+
+    // 用来保持 diff 元素之后 added, updated 的相对顺序
+    const keyIndex = new Map<string, number>();
+    let index = 0;
+
+    // 获得更新数据所有的 keys
+    // 将更新的数据用 key 索引
+    for (let i = 0; i < mappingDataArray.length; i++) {
+      const mappingData = mappingDataArray[i];
+      for (let j = 0; j < mappingData.length; j++) {
+        const mappingDatum = mappingData[j];
+        const key = this.getElementId(mappingDatum);
+        const finalKey = keyDatum.has(key) ? `${key}-${i}-${j}` : key;
+        keys.push(finalKey);
+        keyDatum.set(finalKey, mappingDatum);
+        keyIndex.set(finalKey, index);
+        index++;
       }
-
-      let result = lastElementsMap[id];
-      if (!result) {
-        // 创建新的 element
-        result = this.createElement(mappingDatum, isUpdate);
-      } else {
-        // element 已经创建
-        const currentShapeCfg = this.getDrawCfg(mappingDatum);
-        const preShapeCfg = result.getModel();
-        if (this.isCoordinateChanged || isModelChange(currentShapeCfg, preShapeCfg)) {
-          result.animate = this.animateOption;
-          // 通过绘制数据的变更来判断是否需要更新，因为用户有可能会修改图形属性映射
-          result.update(currentShapeCfg); // 更新对应的 element
-        }
-
-        delete lastElementsMap[id];
-      }
-
-      elements.push(result);
-      elementsMap[id] = result;
     }
 
-    // 对 elements 的 zIndex 进行反序
-    if (this.zIndexReversed) {
-      const length = elements.length;
-      elements.forEach((ele, idx) => {
-        ele.shape.setZIndex(length - idx);
-      });
+    this.elements = new Array(index);
+
+    const { added, updated, removed } = diff(this.lastElementsMap, keys);
+
+    // 新建 element
+    for (const key of added) {
+      const mappingDatum = keyDatum.get(key);
+      const i = keyIndex.get(key);
+      const element = this.createElement(mappingDatum, i, isUpdate);
+      this.elements[i] = element;
+      this.elementsMap[key] = element;
+      if (element.shape) {
+        element.shape.set('zIndex', this.zIndexReversed ? this.elements.length - i : i);
+      }
     }
 
-    return elements;
+    // 更新 element
+    for (const key of updated) {
+      const element = this.lastElementsMap[key];
+      const mappingDatum = keyDatum.get(key);
+      const currentShapeCfg = this.getDrawCfg(mappingDatum);
+      const preShapeCfg = element.getModel();
+      const i = keyIndex.get(key);
+      if (this.isCoordinateChanged || isModelChange(currentShapeCfg, preShapeCfg)) {
+        element.animate = this.animateOption;
+        // 通过绘制数据的变更来判断是否需要更新，因为用户有可能会修改图形属性映射
+        element.update(currentShapeCfg); // 更新对应的 element
+      }
+      this.elements[i] = element;
+      this.elementsMap[key] = element;
+      if (element.shape) {
+        element.shape.set('zIndex', this.zIndexReversed ? this.elements.length - i : i);
+      }
+    }
+
+    // 全部 setZIndex 之后，再执行 sort
+    if (this.container) {
+      this.container.sort();
+    }
+
+    // 销毁被删除的 elements
+    for (const key of removed) {
+      const element = this.lastElementsMap[key];
+      // 更新动画配置，用户有可能在更新之前有对动画进行配置操作
+      element.animate = this.animateOption;
+      element.destroy();
+    }
   }
 
   /**
@@ -1551,7 +1640,7 @@ export default class Geometry extends Base {
   }
 
   // 创建图形属性相关的配置项
-  private createAttrOption(attrName: string, field: AttributeOption | string | number, cfg?) {
+  protected createAttrOption(attrName: string, field: AttributeOption | string | number, cfg?) {
     if (isNil(field) || isObject(field)) {
       if (isObject(field) && isEqual(Object.keys(field), ['values'])) {
         // shape({ values: [ 'funnel' ] })
@@ -1582,7 +1671,7 @@ export default class Geometry extends Base {
     }
   }
 
-  private initAttributes() {
+  protected initAttributes() {
     const { attributes, attributeOption, theme, shapeType } = this;
     this.groupScales = [];
     const tmpMap = {};
@@ -1602,9 +1691,12 @@ export default class Geometry extends Base {
         // 获取每一个字段对应的 scale
         const scales = fields.map((field) => {
           const scale = this.scales[field];
-          if (scale.isCategory && !tmpMap[field] && GROUP_ATTRS.includes(attrType)) {
-            this.groupScales.push(scale);
-            tmpMap[field] = true;
+          if (!tmpMap[field] && GROUP_ATTRS.includes(attrType)) {
+            const inferedScaleType = inferScaleType(scale, get(this.scaleDefs, field), attrType, this.type);
+            if (inferedScaleType === 'cat') {
+              this.groupScales.push(scale);
+              tmpMap[field] = true;
+            }
           }
           return scale;
         });
@@ -1737,6 +1829,11 @@ export default class Geometry extends Base {
           }
         }
         const adjustCtor = getAdjustClass(type);
+        adjustCfg.dimValuesMap = {};
+        //生成dimValuesMap
+        if (xScale && xScale.values) {
+          adjustCfg.dimValuesMap[xScale.field] = xScale.values.map((v) => xScale.translate(v));
+        }
         const adjustInstance = new adjustCtor(adjustCfg);
 
         result = adjustInstance.process(result);
@@ -1991,8 +2088,10 @@ export default class Geometry extends Base {
     }
   }
 
-  private renderLabels(mappingArray: MappingDatum[], isUpdate: boolean = false) {
+  private async renderLabels(mappingArray: MappingDatum[], isUpdate: boolean = false) {
     let geometryLabel = this.geometryLabel;
+
+    this.emit(GEOMETRY_LIFE_CIRCLE.BEFORE_RENDER_LABEL);
 
     if (!geometryLabel) {
       // 初次创建
@@ -2001,25 +2100,31 @@ export default class Geometry extends Base {
       geometryLabel = new GeometryLabelsCtor(this);
       this.geometryLabel = geometryLabel;
     }
-    geometryLabel.render(mappingArray, isUpdate);
+    await geometryLabel.render(mappingArray, isUpdate);
 
     // 将 label 同 element 进行关联
     const labelsMap = geometryLabel.labelsRenderer.shapesMap;
-    each(this.elementsMap, (element: Element, id) => {
-      const labels = filterLabelsById(id, labelsMap); // element 实例同 label 进行绑定
-      if (labels.length) {
-        element.labelShape = labels;
-        for (let i = 0; i < labels.length; i++) {
-          const label = labels[i];
-          const labelChildren = label.getChildren();
-          for (let j = 0; j < labelChildren.length; j++) {
-            const child = labelChildren[j];
-            child.cfg.name = ['element', 'label'];
-            child.cfg.element = element;
-          }
+    // Store labels for every element.
+    const elementLabels = new Map<Element, Set<IGroup>>();
+    each(labelsMap, (labelGroup: IGroup, labelGroupId: string) => {
+      const labelChildren = labelGroup.getChildren() || [];
+      for (let j = 0; j < labelChildren.length; j++) {
+        const labelShape = labelChildren[j];
+        const element = this.elementsMap[labelShape.get('elementId') || labelGroupId.split(' ')[0]];
+        if (element) {
+          labelShape.cfg.name = ['element', 'label'];
+          labelShape.cfg.element = element;
+          const labels = elementLabels.get(element) || new Set();
+          labels.add(labelGroup);
+          elementLabels.set(element, labels);
         }
       }
     });
+    for (const [element, labels] of elementLabels.entries()) {
+      element.labelShape = [...labels];
+    }
+
+    this.emit(GEOMETRY_LIFE_CIRCLE.AFTER_RENDER_LABEL);
   }
   /**
    * 是否需要进行群组入场动画

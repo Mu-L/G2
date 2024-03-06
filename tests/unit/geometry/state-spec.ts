@@ -60,12 +60,12 @@ describe('State setting', () => {
     expect(interval.elements[1].hasState('active')).toBeFalse();
   });
 
-  function initInterval({ background }) {
-    const data = [
-      { a: 'A', b: 10 },
-      { a: 'B', b: 12 },
-      { a: 'C', b: 8 },
-    ];
+  const data = [
+    { a: 'A', b: 10 },
+    { a: 'B', b: 12 },
+    { a: 'C', b: 8 },
+  ];
+  function initInterval({ background, sortZIndex = false }) {
     const scaleDefs = {
       a: { range: [0.25, 0.75] },
       b: { min: 7 },
@@ -81,6 +81,7 @@ describe('State setting', () => {
       coordinate: rectCoord,
       container: canvas.addGroup(),
       background,
+      sortZIndex,
     });
 
     interval
@@ -131,6 +132,8 @@ describe('State setting', () => {
     expect(backgroundShape.attr('lineWidth')).not.toBe(2);
 
     expect(interval.elements[1].hasState('selected')).toBeFalse();
+
+    interval.destroy();
   });
 
   it('pie selected', () => {
@@ -175,5 +178,29 @@ describe('State setting', () => {
     pie.elements[0].setState('selected', true);
 
     expect(pie.elements[0].shape.attr('matrx')).not.toEqual([1, 0, 0, 0, 1, 0, 0, 0, 1]);
+
+    pie.destroy();
+  });
+
+  it('get ZIndex and setState', () => {
+    const interval = initInterval({ background: false, sortZIndex: true });
+    const element1 = interval.elements[1];
+    const element2 = interval.elements[2];
+    const shape0 = element1.shape;
+    const shape2 = element2.shape;
+    expect(shape0.get('zIndex')).toEqual(1);
+    expect(shape2.get('zIndex')).toEqual(2);
+
+    const parent = shape0.getParent();
+    expect(parent.getChildren()[1].get('origin').data.a).toEqual(data[1].a);
+    expect(parent.getChildren()[2].get('origin').data.a).toEqual(data[2].a);
+    element1.setState('selected', true);
+    // toFront
+    expect(parent.getChildren()[2].get('origin').data.a).toEqual(data[1].a);
+    element1.setState('selected', false);
+    // 回到一开始的位置
+    expect(parent.getChildren()[1].get('origin').data.a).toEqual(data[1].a);
+
+    interval.destroy();
   });
 });

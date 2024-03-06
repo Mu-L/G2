@@ -55,7 +55,7 @@ export default class Scrollbar extends Controller<ScrollbarOption> {
     this.view.off(VIEW_LIFE_CIRCLE.BEFORE_CHANGE_SIZE, this.resetMeasure);
   }
 
-  public init() {}
+  public init() { }
 
   /**
    * 渲染
@@ -169,6 +169,16 @@ export default class Scrollbar extends Controller<ScrollbarOption> {
     this.yScalesCfg = [];
   }
 
+  /** 设置滚动条位置  */
+  public setValue(ratio: number) {
+    this.onValueChange({ ratio });
+  }
+
+  /** 获得滚动条位置  */
+  public getValue() {
+    return this.ratio;
+  }
+
   /**
    * 获取 scrollbar 的主题配置
    */
@@ -207,7 +217,7 @@ export default class Scrollbar extends Controller<ScrollbarOption> {
   private measureScrollbar(): void {
     const xScale = this.view.getXScale();
     const yScales = this.view.getYScales().slice();
-    this.data = this.view.getOptions().data;
+    this.data = this.getScrollbarData();
     this.step = this.getStep();
     this.cnt = this.getCnt();
     const { trackLen, thumbLen } = this.getScrollbarComponentCfg();
@@ -230,13 +240,18 @@ export default class Scrollbar extends Controller<ScrollbarOption> {
     const { type } = this.getValidScrollbarCfg();
     const isHorizontal = type !== 'vertical';
     const values = valuesOfKey(this.data, this.xScaleCfg.field);
-    const xValues = isHorizontal ? values : values.reverse();
+
+    // 如果是 xScale 数值类型，则进行排序
+    const xScaleValues = this.view.getXScale().isLinear ? values.sort((a, b) => Number(a) - Number(b)) : values;
+
+    const xValues = isHorizontal ? xScaleValues : xScaleValues.reverse();
     this.yScalesCfg.forEach((cfg) => {
       this.view.scale(cfg.field, {
         formatter: cfg.formatter,
         type: cfg.type as ScaleOption['type'],
         min: cfg.min,
         max: cfg.max,
+        tickMethod: cfg.tickMethod
       });
     });
     this.view.filter(this.xScaleCfg.field, (val) => {
@@ -270,11 +285,11 @@ export default class Scrollbar extends Controller<ScrollbarOption> {
     const config = this.getScrollbarComponentCfg();
     const realConfig = this.trackLen
       ? {
-          ...config,
-          trackLen: this.trackLen,
-          thumbLen: this.thumbLen,
-          thumbOffset: (this.trackLen - this.thumbLen) * this.ratio,
-        }
+        ...config,
+        trackLen: this.trackLen,
+        thumbLen: this.thumbLen,
+        thumbOffset: (this.trackLen - this.thumbLen) * this.ratio,
+      }
       : { ...config };
     this.scrollbar.component.update(realConfig);
 
@@ -297,7 +312,7 @@ export default class Scrollbar extends Controller<ScrollbarOption> {
       return this.cnt;
     }
     const xScale = this.view.getXScale();
-    const data = this.view.getOptions().data;
+    const data = this.getScrollbarData();
     const values = valuesOfKey(data, xScale.field);
     return size(values);
   }
@@ -309,13 +324,13 @@ export default class Scrollbar extends Controller<ScrollbarOption> {
     const [paddingTop, paddingRight, paddingBottom, paddingLeft] = padding;
     const position = isHorizontal
       ? {
-          x: coordinateBBox.minX + paddingLeft,
-          y: viewBBox.maxY - height - paddingBottom,
-        }
+        x: coordinateBBox.minX + paddingLeft,
+        y: viewBBox.maxY - height - paddingBottom,
+      }
       : {
-          x: viewBBox.maxX - width - paddingRight,
-          y: coordinateBBox.minY + paddingTop,
-        };
+        x: viewBBox.maxX - width - paddingRight,
+        y: coordinateBBox.minY + paddingTop,
+      };
     const step = this.getStep();
     const cnt = this.getCnt();
     const trackLen = isHorizontal
@@ -358,5 +373,20 @@ export default class Scrollbar extends Controller<ScrollbarOption> {
     }
 
     return cfg;
+  }
+
+  /**
+   * 获取数据
+   */
+  private getScrollbarData(): Data {
+    const coordinate = this.view.getCoordinate();
+    const cfg = this.getValidScrollbarCfg();
+    let data = this.view.getOptions().data || [];
+    // 纵向做了 y 轴镜像之后，数据也需要镜像反转
+    if (coordinate.isReflect('y') && cfg.type === 'vertical') {
+      data = [...data].reverse();
+    }
+
+    return data;
   }
 }

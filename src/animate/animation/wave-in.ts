@@ -1,3 +1,4 @@
+import { isFunction } from '@antv/util';
 import { IGroup, IShape } from '../../dependents';
 import { GAnimateCfg } from '../../interface';
 import { getCoordinateClipCfg } from '../../util/coordinate';
@@ -19,7 +20,12 @@ export function waveIn(element: IShape | IGroup, animateCfg: GAnimateCfg, cfg: A
     attrs: startState,
   }) as IShape; // 为 shape 设置剪切区域
 
-  // 对剪切图形做动画
+  // 更新 动画 获取了 toAttrs 需要重新更新上去
+  if (cfg.toAttrs) {
+    element.attr(cfg.toAttrs);
+  }
+
+  // 对剪切图形做动画
   clipShape.animate(endState, {
     ...animateCfg,
     callback: () => {
@@ -27,6 +33,7 @@ export function waveIn(element: IShape | IGroup, animateCfg: GAnimateCfg, cfg: A
         element.set('clipShape', null);
       }
       clipShape.remove(true); // 动画结束需要将剪切图形销毁
+      isFunction(animateCfg.callback) && animateCfg.callback();
     },
   });
 }

@@ -1,16 +1,16 @@
 name: CI
 
-on: ["push", "pull_request"]
+on: [push, pull_request]
 
 jobs:
   lint:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v1
-      - name: Use Node.js 12
+      - uses: actions/checkout@v2
+      - name: Use Node.js 14
         uses: actions/setup-node@v1
         with:
-          node-version: 12.x
+          node-version: 14
       - name: npm install
         run: |
           npm install
@@ -21,11 +21,11 @@ jobs:
   build:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v1
-      - name: Use Node.js 12
+      - uses: actions/checkout@v2
+      - name: Use Node.js 14
         uses: actions/setup-node@v1
         with:
-          node-version: 12.x
+          node-version: 14
       - name: npm install
         run: |
           npm install
@@ -36,14 +36,14 @@ jobs:
   test:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v1
-      - name: Use Node.js 12
+      - uses: actions/checkout@v2
+      - name: Use Node.js 14
         uses: actions/setup-node@v1
         with:
-          node-version: 12.x
+          node-version: 14
       - name: npm install
         run: |
-          npm install
+          yarn install
       - name: test
         run: |
           npm run coverage

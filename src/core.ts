@@ -1,6 +1,6 @@
 /* G2 的一个壳子，不包含 Geometry，由开发者自己定义和引入 */
 
-export const VERSION = '4.1.14';
+export const VERSION = '4.2.11';
 
 // 核心基类导出
 export { Chart, View, Event } from './chart'; // Chart, View 类
@@ -54,11 +54,15 @@ export type { Types };
 export { IGroup, ShapeAttrs, Coordinate, Scale, ScaleConfig } from './dependents';
 
 // 一些工具方法导出
+import { getMappingValue } from './util/attr';
 import { getLegendItems } from './util/legend';
 import { getAngle, getSectorPath, polarToCartesian } from './util/graphics';
 import { rotate, transform, translate, zoom } from './util/transform';
 import { getTooltipItems } from './util/tooltip';
 import { getDelegationObject } from './interaction/action/util';
+import { getPathPoints } from './geometry/shape/util/get-path-points';
+import { getPath } from './geometry/shape/line';
+
 export const Util = {
   getLegendItems,
   translate,
@@ -70,4 +74,8 @@ export const Util = {
   polarToCartesian,
   getDelegationObject,
   getTooltipItems,
+  getMappingValue,
+  // shape 的一些操作方法
+  getPath,
+  getPathPoints,
 };

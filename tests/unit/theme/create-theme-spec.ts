@@ -50,11 +50,29 @@ describe('createTheme', () => {
   });
 
   it('styleSheet legendPadding', () => {
-    let theme = createTheme({});
+    const theme = createTheme({});
     expect(theme.components.legend.top.padding).toEqual([8, 0, 8, 0]);
     expect(theme.components.legend.bottom.padding).toEqual([8, 0, 8, 0]);
     expect(theme.components.legend.left.padding).toEqual([0, 8, 0, 8]);
     expect(theme.components.legend.right.padding).toEqual([0, 8, 0, 8]);
     expect(theme.components.legend.continuous.padding).toEqual([8, 8, 8, 8]);
+  });
+
+  it('styleSheet paletteSequence', () => {
+    let theme = createTheme({ styleSheet: { paletteSequence: ['red', 'blue'] } });
+    expect(theme.sequenceColors).toEqual(['red', 'blue']);
+
+    theme = createTheme({ sequenceColors: ['red', 'yellow'] });
+    expect(theme.sequenceColors).toEqual(['red', 'yellow']);
+  });
+
+  it('通过 styleSheet 设置组件样式', () => {
+    const theme = createTheme({ styleSheet: { axisLabelFillColor: 'red', axisGridBorderColor: 'blue', annotationTextFillColor: 'green' } });
+    // 坐标轴标签颜色
+    expect(theme.components.axis.common.label.style.fill).toEqual('red');
+    // 坐标轴 grid 虚线颜色
+    expect(theme.components.axis.common.grid.line.style.stroke).toEqual('blue');
+    // text annotation 颜色
+    expect(theme.components.annotation.text.style.fill).toEqual('green');
   });
 });

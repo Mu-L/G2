@@ -218,6 +218,42 @@ describe('绘制 interval shape 的一些 utils', () => {
     ]);
   });
 
+  it('直角坐标系：corner-radius大于rect最小边长的一半', () => {
+    const rectCoord = new CartesianCoordinate(region);
+
+    const path = getRectWithCornerRadius(
+      [
+        { x: 60, y: 150 },
+        { x: 60, y: 0 },
+        { x: 120, y: 0 },
+        { x: 120, y: 150 },
+      ],
+      rectCoord,
+      45
+    );
+    /**
+     * 从 p1 开始绘制，对应的 radius: [r1, r2, r3, r0]
+     * p1 ----> p2
+     * ↑        |
+     * |        |
+     * |        |
+     * |        ↓
+     * P0 <---- P3
+     */
+    expect(path).toEqual([
+      ['M', 60, 30],
+      ['A', 30, 30, 0, 0, 1, 90, 0],
+      ['L', 90, 0],
+      ['A', 30, 30, 0, 0, 1, 120, 30],
+      ['L', 120, 120],
+      ['A', 30, 30, 0, 0, 1, 90, 150],
+      ['L', 90, 150],
+      ['A', 30, 30, 0, 0, 1, 60, 120],
+      ['L', 60, 30],
+      ['z'],
+    ]);
+  });
+
   it('直角坐标系, 转置: 带 corner-radius 的 rect', () => {
     const rectCoord = new CartesianCoordinate(region);
     rectCoord.transpose();
@@ -252,7 +288,6 @@ describe('绘制 interval shape 的一些 utils', () => {
       ['z'],
     ]);
 
-
     const path1 = getRectWithCornerRadius(
       [
         { x: 60, y: 150 },
@@ -279,13 +314,14 @@ describe('绘制 interval shape 的一些 utils', () => {
     const rectCoord = new CartesianCoordinate(region);
     rectCoord.transpose();
 
+    const points = [
+      { x: 210, y: 150 },
+      { x: 60, y: 150 },
+      { x: 60, y: 90 },
+      { x: 210, y: 90 },
+    ];
     const path = getRectWithCornerRadius(
-      [
-        { x: 210, y: 150 },
-        { x: 60, y: 150 },
-        { x: 60, y: 90 },
-        { x: 210, y: 90 },
-      ],
+      points,
       rectCoord,
       5
     );
@@ -297,38 +333,48 @@ describe('绘制 interval shape 的一些 utils', () => {
      * P0 ← P1
      */
     expect(path).toEqual([
-      ['M', 60, 95],
-      ['A', 5, 5, 0, 0, 1, 65, 90],
-      ['L', 205, 90],
-      ['A', 5, 5, 0, 0, 1, 210, 95],
-      ['L', 210, 145],
-      ['A', 5, 5, 0, 0, 1, 205, 150],
-      ['L', 65, 150],
-      ['A', 5, 5, 0, 0, 1, 60, 145],
-      ['L', 60, 95],
-      ['z'],
-    ]);
-
-
-    const path1 = getRectWithCornerRadius(
-      [
-        { x: 210, y: 150 },
-        { x: 60, y: 150 },
-        { x: 60, y: 90 },
-        { x: 210, y: 90 },
-      ],
-      rectCoord,
-      [5, 0, 0, 5]
-    );
-    expect(path1).toEqual([
-      ['M', 60, 95],
-      ['A', 5, 5, 0, 0, 1, 65, 90],
-      ['L', 205, 90],
-      ['A', 5, 5, 0, 0, 1, 210, 95],
-      ['L', 210, 150],
-      ['L', 60, 150],
-      ['L', 60, 95],
+      ['M', 65, 90],
+      ['A', 5, 5, 0, 0, 0, 60, 95],
+      ['L', 60, 145],
+      ['A', 5, 5, 0, 0, 0, 65, 150],
+      ['L', 205, 150],
+      ['A', 5, 5, 0, 0, 0, 210, 145],
+      ['L', 210, 95],
+      ['A', 5, 5, 0, 0, 0, 205, 90],
+      ['L', 65, 90],
       ['z'],
     ]);
   });
+
+  it('直角坐标系， 转置，corner-radius大于rect最小边长的一半', () => {
+    const rectCoord = new CartesianCoordinate(region);
+    rectCoord.transpose();
+
+    const points = [
+      { x: 210, y: 150 },
+      { x: 60, y: 150 },
+      { x: 60, y: 90 },
+      { x: 210, y: 90 },
+    ];
+    const path = getRectWithCornerRadius(
+      points,
+      rectCoord,
+      45
+    );
+
+    expect(path).toEqual([
+      ['M', 90, 90],
+      ['A', 30, 30, 0, 0, 0, 60, 120],
+      ['L', 60, 120],
+      ['A', 30, 30, 0, 0, 0, 90, 150],
+      ['L', 180, 150],
+      ['A', 30, 30, 0, 0, 0, 210, 120],
+      ['L', 210, 120],
+      ['A', 30, 30, 0, 0, 0, 180, 90],
+      ['L', 90, 90],
+      ['z'],
+    ]);
+
+  });
+
 });

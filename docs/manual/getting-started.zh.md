@@ -39,6 +39,14 @@ const chart = new Chart({
 <script src="./g2.js"></script>
 ```
 
+使用 `script` 标签引入 G2 资源时，挂载在 window 上的变量名为 `G2`，所以在上述实例中需要加上 `G2` 的前缀。如下：
+
+```ts
+const chart = new G2.Chart({
+  /* your options */
+});
+```
+
 <!-- 请求链接 404 先注释掉 -->
 <!-- 你也可以直接通过  [unpkg](https://unpkg.com/@antv/g2)  下载。 -->
 
@@ -71,10 +79,13 @@ const chart = new Chart({
 
 你也可以进入 [G2 图表示例](zh/examples/gallery)页面查看更多例子。
 
+### 3. 图表容器被销毁时
+
+在图表容器被销毁时，总是应调用 `chart.destroy()` 以销毁实例释放资源，避免内存泄漏。
+
 ## 在 React / Vue / Angular 中使用 G2
 
-基于 AntV 技术栈还有许多优秀的项目，在 React 环境下使用 G2，我们推荐使用 Ant Design Charts，BizCharts 和 Viser。这三个产品都是基于 G2 的 React 版本封装，使用体验更符合 React 技术栈的习惯，他们都与 AntV 有着紧密的协同，他们很快也将同步开源和发布基于 G2 4.0 的版本。Viser 除了 React 外，还提供了 Vue 和 Angular 不同的分发版本。
+基于 AntV 技术栈还有许多优秀的项目，在 React 环境下使用 G2，我们推荐使用 Ant Design Charts 和 BizCharts。这三个产品都是基于 G2 的 React 版本封装，使用体验更符合 React 技术栈的习惯，他们都与 AntV 有着紧密的协同，他们很快也将同步开源和发布基于 G2 4.0 的版本。
 
 - Ant Design Charts 地址：[https://charts.ant.design](https://charts.ant.design)
-- BizCharts 地址：[https://bizcharts.net](https://bizcharts.net)
-- Viser 地址：[https://viserjs.github.io/](https://viserjs.github.io/)
+- BizCharts 地址：[https://bizcharts.taobao.com/](https://bizcharts.taobao.com/)

@@ -22,6 +22,9 @@ function createAxisStyles(styleSheet: StyleSheet): LooseObject {
         textBaseline: 'middle',
         fontFamily: styleSheet.fontFamily,
       },
+      iconStyle: {
+        fill: styleSheet.axisDescriptionIconFillColor
+      }
     },
     label: {
       autoRotate: false,
@@ -97,6 +100,30 @@ function createLegendStyles(styleSheet: StyleSheet): LooseObject {
         fontWeight: styleSheet.legendItemNameFontWeight,
         textAlign: 'start',
         textBaseline: 'middle',
+      },
+    },
+    itemStates: {
+      active: {
+        nameStyle: {
+          opacity: 0.8,
+        },
+      },
+      unchecked: {
+        nameStyle: {
+          fill: '#D8D8D8',
+        },
+        markerStyle: {
+          fill: '#D8D8D8',
+          stroke: '#D8D8D8',
+        },
+      },
+      inactive: {
+        nameStyle: {
+          fill: '#D8D8D8',
+        },
+        markerStyle: {
+          opacity: 0.2,
+        },
       },
     },
     flipPage: true,
@@ -276,6 +303,9 @@ export function createThemeByStyleSheet(styleSheet: StyleSheet): LooseObject {
   return {
     background: styleSheet.backgroundColor,
     defaultColor: styleSheet.brandColor,
+    subColor: styleSheet.subColor,
+    semanticRed: styleSheet.paletteSemanticRed,
+    semanticGreen: styleSheet.paletteSemanticGreen,
     padding: 'auto',
     fontFamily: styleSheet.fontFamily,
     // 兼容Theme配置
@@ -291,6 +321,7 @@ export function createThemeByStyleSheet(styleSheet: StyleSheet): LooseObject {
     multiplePieWidthRatio: 1 / 1.3,
     colors10: styleSheet.paletteQualitative10,
     colors20: styleSheet.paletteQualitative20,
+    sequenceColors: styleSheet.paletteSequence,
     shapes: {
       point: [
         'hollow-circle',
@@ -994,6 +1025,64 @@ export function createThemeByStyleSheet(styleSheet: StyleSheet): LooseObject {
           },
         },
       },
+      violin: {
+        violin: {
+          default: {
+            style: shapeStyles.line.default,
+          },
+          active: {
+            style: shapeStyles.line.active,
+          },
+          inactive: {
+            style: shapeStyles.line.inactive,
+          },
+          selected: {
+            style: shapeStyles.line.selected,
+          },
+        },
+        smooth: {
+          default: {
+            style: shapeStyles.line.default,
+          },
+          active: {
+            style: shapeStyles.line.active,
+          },
+          inactive: {
+            style: shapeStyles.line.inactive,
+          },
+          selected: {
+            style: shapeStyles.line.selected,
+          },
+        },
+        hollow: {
+          default: {
+            style: shapeStyles.hollowArea.default,
+          },
+          active: {
+            style: shapeStyles.hollowArea.active,
+          },
+          inactive: {
+            style: shapeStyles.hollowArea.inactive,
+          },
+          selected: {
+            style: shapeStyles.hollowArea.selected,
+          },
+        },
+        'hollow-smooth': {
+          default: {
+            style: shapeStyles.hollowArea.default,
+          },
+          active: {
+            style: shapeStyles.hollowArea.active,
+          },
+          inactive: {
+            style: shapeStyles.hollowArea.inactive,
+          },
+          selected: {
+            style: shapeStyles.hollowArea.selected,
+          },
+        },
+      },
     },
     components: {
       axis: {
@@ -1279,6 +1368,34 @@ export function createThemeByStyleSheet(styleSheet: StyleSheet): LooseObject {
       slider: {
         common: {
           padding: [8, 8, 8, 8],
+          backgroundStyle: {
+            fill: styleSheet.cSliderBackgroundFillColor,
+            opacity: styleSheet.cSliderBackgroundFillOpacity,
+          },
+          foregroundStyle: {
+            fill: styleSheet.cSliderForegroundFillColor,
+            opacity: styleSheet.cSliderForegroundFillOpacity,
+          },
+          handlerStyle: {
+            width: styleSheet.cSliderHandlerWidth,
+            height: styleSheet.cSliderHandlerHeight,
+            fill: styleSheet.cSliderHandlerFillColor,
+            opacity: styleSheet.cSliderHandlerFillOpacity,
+            stroke: styleSheet.cSliderHandlerBorderColor,
+            lineWidth: styleSheet.cSliderHandlerBorder,
+            radius: styleSheet.cSliderHandlerBorderRadius,
+            // 高亮的颜色
+            highLightFill: styleSheet.cSliderHandlerHighlightFillColor,
+          },
+          textStyle: {
+            fill: styleSheet.cSliderTextFillColor,
+            opacity: styleSheet.cSliderTextFillOpacity,
+            fontSize: styleSheet.cSliderTextFontSize,
+            lineHeight: styleSheet.cSliderTextLineHeight,
+            fontWeight: styleSheet.cSliderTextFontWeight,
+            stroke: styleSheet.cSliderTextBorderColor,
+            lineWidth: styleSheet.cSliderTextBorder,
+          },
         },
       },
       scrollbar: {
@@ -1287,13 +1404,13 @@ export function createThemeByStyleSheet(styleSheet: StyleSheet): LooseObject {
         },
         default: {
           style: {
-            trackColor: 'rgba(0,0,0,0)',
-            thumbColor: 'rgba(0,0,0,0.15)',
+            trackColor: styleSheet.scrollbarTrackFillColor,
+            thumbColor: styleSheet.scrollbarThumbFillColor,
           },
         },
         hover: {
           style: {
-            thumbColor: 'rgba(0,0,0,0.2)',
+            thumbColor: styleSheet.scrollbarThumbHighlightFillColor,
           },
         },
       },

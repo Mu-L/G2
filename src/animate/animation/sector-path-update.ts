@@ -1,5 +1,5 @@
 import { getArcParams } from '@antv/g-canvas';
-import { isNumberEqual, isEqual } from '@antv/util';
+import { isNumberEqual, isEqual, isFunction } from '@antv/util';
 
 import { IShape, PathCommand } from '../../dependents';
 import { GAnimateCfg } from '../../interface';
@@ -26,7 +26,8 @@ function getAngle(startPoint: number[], arcPath: PathCommand) {
     startAngle = Math.PI * -0.5;
   }
 
-  if (isNumberEqual(endAngle, Math.PI * -0.5)) {
+  // 当 startAngle, endAngle 接近相等时，不进行 endAngle = Math.PI * 1.5 防止变化从整个圆开始
+  if (isNumberEqual(endAngle, Math.PI * -0.5) && !isNumberEqual(startAngle, endAngle)) {
     endAngle = Math.PI * 1.5;
   }
 
@@ -57,7 +58,7 @@ function getArcStartPoint(path: PathCommand) {
  * 6. radial-line, 为整圆时的 path，命令为 M, A, A, A, A, Z
  * @param path theta 坐标系下圆弧的 path 命令
  */
-function getArcInfo(path: PathCommand[]) {
+export function getArcInfo(path: PathCommand[]) {
   let startAngle;
   let endAngle;
 
@@ -130,7 +131,7 @@ export function sectorPathUpdate(shape: IShape, animateCfg: GAnimateCfg, cfg: An
   const diffEndAngle = curEndAngle - preEndAngle;
   // 没有 diff 时直接返回最终 attrs，不需要额外动画
   if (diffStartAngle === 0 && diffEndAngle === 0) {
-    shape.attr('path', path);
+    shape.attr(toAttrs);
     return;
   }
 
@@ -152,6 +153,7 @@ export function sectorPathUpdate(shape: IShape, animateCfg: GAnimateCfg, cfg: An
       callback: () => {
         // 将 path 保持原始态，否则会影响 setState() 的动画
         shape.attr('path', path);
+        isFunction(animateCfg.callback) && animateCfg.callback();
       },
     }
   );

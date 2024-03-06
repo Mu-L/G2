@@ -3,7 +3,7 @@ title: 交互 - Interaction
 order: 17
 ---
 
-交互（Interaction）是 G2 中的重要 API，通过这个方法可以加载 G2 内置的交互，或者基于交互语法形式自定义的 Interaction 交互。G2 4.0 在交互方面做了非常大的调整，所有的交互代码都是插入式的，通过交互语法进行组织。使用交互的方式也非常简单，仅需要设置交互的名称即可。关于交互语法可以阅读[交互语法](../../manual/concepts/interaction)。
+交互（Interaction）是 G2 中的重要 API，通过这个方法可以加载 G2 内置的交互，或者基于交互语法形式自定义的 Interaction 交互。G2 4.0 在交互方面做了非常大的调整，所有的交互代码都是插入式的，通过交互语法进行组织。使用交互的方式也非常简单，仅需要设置交互的名称即可。关于交互语法可以阅读[交互语法](../../../manual/concepts/interaction)。
 
 ```sign
 (name: string, cfg?: object) => View;
@@ -47,7 +47,7 @@ new Chart({
 - chart.interaction(name, [cfg]) 添加或者修改交互
 - chart.removeInteraction(name) 移除交互
 
-添加或者修改交互时的第二个参数 cfg 是来修改已经定义好的交互的行为，G2 4.0 中的交互全部由交互语法组装而成，可以参考 [交互的环节](../concepts/interaction)，我们在这里不对交互语法进行详细的介绍。
+添加或者修改交互时的第二个参数 cfg 是来修改已经定义好的交互的行为，G2 4.0 中的交互全部由交互语法组装而成，可以参考 [交互语法](../../../manual/concepts/interaction)，我们在这里不对交互语法进行详细的介绍。
 
 ```javascript
 chart.interaction('tooltip'); // 使用交互
@@ -632,6 +632,8 @@ registerInteraction('brush-visible', {
 - swResize() 光标指示可移动的方向左下方（西南）
 - nsResize() 光标指示可以在上下方向移动
 - ewResize() 光标指示可以在左右方向移动
+- zoomIn() 光标显示可以被放大
+- zoomOut() 光标显示可以缩小尺寸
 
 ### Chart/View 的 Action
 
@@ -664,6 +666,30 @@ Chart 和 View 上的 Action 用户控制视图的变化，目前支持的有：
 - zoomIn() 缩小
 - zoomOut() 放大
 - reset() 恢复
+
+#### mousewheel-scroll
+
+- scroll() 鼠标滚轮
+
+```javascript
+chart.interaction("plot-mousewheel-scroll");
+
+chart.option('scrollbar', {
+  type: 'horizontal',
+});
+```
+
+在鼠标滚动事件（向下滚动或向上滚动）上滚动的图表数据项的数量可以通过如下设置 `wheelDelta` 参数来自定义:
+
+```javascript
+chart.interaction("plot-mousewheel-scroll", {
+  start: [{ trigger: 'plot:mousewheel', action: 'mousewheel-scroll:scroll', arg: {  wheelDelta: 5 } }],
+});
+
+chart.option('scrollbar', {
+  type: 'horizontal',
+});
+```
 
 ### Element 的 Action
 
@@ -1001,6 +1027,39 @@ registerInteraction('element-brush', {
 - hide() 隐藏遮罩层
 - end() 结束框选
 
+#### rect-multi-mask
+
+在画布上进行框选，支持反复框选，出现多个矩形的遮罩：
+
+- start() 开始框选
+- show() 显示遮罩层
+- resize() 改变大小
+- hide() 隐藏遮罩层
+- end() 结束框选
+- clear() 清除框选
+
+#### circle-multi-mask
+
+在画布上进行框选，支持反复框选，出现多个圆形的遮罩：
+
+- start() 开始框选
+- show() 显示遮罩层
+- resize() 改变大小
+- hide() 隐藏遮罩层
+- end() 结束框选
+- clear() 清除框选
+
+#### path-multi-mask
+
+在画布上进行框选，在多个点上形成 path，支持反复框选，出现多个 path 遮罩：
+
+- start() 开始框选
+- show() 显示遮罩层
+- addPoint() 添加一个点
+- hide() 隐藏遮罩层
+- end() 结束框选
+- clear() 清除框选
+
 #### reset-button
 
 在画布右上角出现一个恢复按钮，按钮图形上有 name: 'reset-button'，仅有两个方法：
@@ -1010,4 +1069,4 @@ registerInteraction('element-brush', {
 
 ### 更多
 
-本文中仅介绍了如何使用交互，而所有交互都是通过交互语法搭配而成的，需要自定义交互的用户可以参考 [交互语法](../../manual/concepts/interaction)。
+本文中仅介绍了如何使用交互，而所有交互都是通过交互语法搭配而成的，需要自定义交互的用户可以参考 [交互语法](../../../manual/concepts/interaction)。

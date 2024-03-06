@@ -11,7 +11,7 @@ import { Point, ShapeInfo, ShapePoint } from '../../../interface';
  * @param [isPyramid] 是否为尖底漏斗图
  * @returns rect points 返回矩形四个顶点信息
  */
-export function getRectPoints(pointInfo: ShapePoint, isPyramid = false): Point[] {
+export function getRectPoints(pointInfo: ShapePoint): Point[] {
   const { x, y, y0, size } = pointInfo;
   // 有 4 种情况，
   // 1. x, y 都不是数组
@@ -41,23 +41,11 @@ export function getRectPoints(pointInfo: ShapePoint, isPyramid = false): Point[]
     { x: xMin, y: yMax },
   ];
 
-  if (isPyramid) {
-    // 绘制尖底漏斗图
-    // 金字塔漏斗图的关键点
-    // 1
-    // |   2
-    // 0
-    points.push({
-      x: xMax,
-      y: (yMax + yMin) / 2,
-    });
-  } else {
-    // 矩形的四个关键点，结构如下（左下角顺时针连接）
-    // 1 ---- 2
-    // |      |
-    // 0 ---- 3
-    points.push({ x: xMax, y: yMax }, { x: xMax, y: yMin });
-  }
+  // 矩形的四个关键点，结构如下（左下角顺时针连接）
+  // 1 ---- 2
+  // |      |
+  // 0 ---- 3
+  points.push({ x: xMax, y: yMax }, { x: xMax, y: yMin });
 
   return points;
 }
@@ -151,14 +139,19 @@ export function getBackgroundRectPath(cfg: ShapeInfo, points: Point[], coordinat
       const height = coordinate.isTransposed ? coordinate.getWidth() : coordinate.getHeight();
       const [r1, r2, r3, r4] = parseRadius(radius, Math.min(width, height));
 
-      path.push(['M', p0.x, p1.y + r1]);
-      r1 !== 0 && path.push(['A', r1, r1, 0, 0, 1, p0.x + r1, p1.y]);
+      // 同时存在 坐标系是否发生转置 和 y 镜像的时候
+      const isReflectYTransposed = (coordinate.isTransposed && coordinate.isReflect('y'));
+      const bump = isReflectYTransposed ? 0 : 1;
+      const opposite = (r: number) => isReflectYTransposed ? -r : r;
+
+      path.push(['M', p0.x, p1.y + opposite(r1)]);
+      r1 !== 0 && path.push(['A', r1, r1, 0, 0, bump, p0.x + r1, p1.y]);
       path.push(['L', p1.x - r2, p1.y]);
-      r2 !== 0 && path.push(['A', r2, r2, 0, 0, 1, p1.x, p1.y + r2]);
-      path.push(['L', p1.x, p0.y - r3]);
-      r3 !== 0 && path.push(['A', r3, r3, 0, 0, 1, p1.x - r3, p0.y]);
+      r2 !== 0 && path.push(['A', r2, r2, 0, 0, bump, p1.x, p1.y + opposite(r2)]);
+      path.push(['L', p1.x, p0.y - opposite(r3)]);
+      r3 !== 0 && path.push(['A', r3, r3, 0, 0, bump, p1.x - r3, p0.y]);
       path.push(['L', p0.x + r4, p0.y]);
-      r4 !== 0 && path.push(['A', r4, r4, 0, 0, 1, p0.x, p0.y - r4]);
+      r4 !== 0 && path.push(['A', r4, r4, 0, 0, bump, p0.x, p0.y - opposite(r4)]);
     } else {
       path.push(['M', p0.x, p0.y]);
       path.push(['L', p1.x, p0.y]);
@@ -246,8 +239,7 @@ export function getFunnelPath(points: Point[], nextPoints: Point[], isPyramid: b
     path.push(
       ['M', points[0].x, points[0].y],
       ['L', points[1].x, points[1].y],
-      ['L', points[2].x, points[2].y],
-      ['L', points[2].x, points[2].y],
+      ['L', (points[2].x + points[3].x) / 2, (points[2].y + points[3].y) / 2],
       ['Z']
     );
   } else {
@@ -265,13 +257,39 @@ export function getFunnelPath(points: Point[], nextPoints: Point[], isPyramid: b
 }
 
 /**
+ * 交换两个对象
+ */
+function swap<T>(p0: T, p1: T) {
+  return [p1, p0];
+}
+
+/**
  * 获取 倒角 矩形
  * - 目前只适用于笛卡尔坐标系下
  */
 export function getRectWithCornerRadius(points: Point[], coordinate: Coordinate, radius?: number | number[]) {
   // 获取 四个关键点
-  let [p0, p1, p2, p3] = points;
-  let [r1, r2, r3, r4] = [0, 0, 0, 0];
+  let [p0, p1, p2, p3] = [...points];
+  let [r1, r2, r3, r4] = typeof radius === 'number' ? Array(4).fill(radius) : radius;
+
+  if (coordinate.isTransposed) {
+    [p1, p3] = swap(p1, p3);
+  }
+
+  /**
+   * 存在镜像
+   */
+  if (coordinate.isReflect('y')) {
+    [p0, p1] = swap(p0, p1);
+    [p2, p3] = swap(p2, p3);
+  }
+  if (coordinate.isReflect('x')) {
+    [p0, p3] = swap(p0, p3);
+    [p1, p2] = swap(p1, p2);
+  }
+
+  const path = [];
+
 
   /**
    *  p1 → p2
@@ -280,55 +298,51 @@ export function getRectWithCornerRadius(points: Point[], coordinate: Coordinate,
    *
    *  负数的情况，关键点会变成下面的形式
    *
-   *  p0 ← p3
-   *  ↓    ↑
-   *  p1 → p2
+   *  p0 ← p3               p2 ← p1
+   *  ↓    ↑                ↓     ↑
+   *  p1 → p2  --> (转置下)  p3 → p0
    */
-  if (p0.y < p1.y /** 负数情况 */) {
-    [p1, p0, p3, p2] = points;
-    [r4, r3, r2, r1] = parseRadius(radius, Math.min(p3.x - p0.x, p0.y - p1.y));
-  } else {
-    [r1, r2, r3, r4] = parseRadius(radius, Math.min(p3.x - p0.x, p0.y - p1.y));
-  }
+  const abs = v => Math.abs(v);
+  [r1, r2, r3, r4] = parseRadius([r1, r2, r3, r4], Math.min(abs(p3.x - p0.x), abs(p1.y - p0.y))).map(d => abs(d));
 
-  /**
-   * 转置前
-   *  p1 → p2
-   *  ↑    ↓
-   *  p0 ← p3
-   *
-   * 转置后(↓ 是 x 轴递增，→ 是 y 轴递增)，从 p0 开始绘制，对应的 radius: [r3, r2, r1, r4]
-   * p3 ← p2
-   * ↓    ↑
-   * P0 → p1（points[3]）
-   *
-   *  负数的情况，y 轴翻转
-   *
-   *  p0 → p1
-   *  ↑    ↓
-   *  p3 ← p2
-   */
   if (coordinate.isTransposed) {
-    [p0, p3, p2, p1] = points;
-    if (points[0].x > points[1].x /** 负数情况 */) {
-      [p3, p0, p1, p2] = points;
-      [r1, r4, r3, r2] = parseRadius(radius, Math.min(p3.x - p0.x, p0.y - p1.y));
-    } else {
-      [r2, r3, r4, r1] = parseRadius(radius, Math.min(p3.x - p0.x, p0.y - p1.y));
-    }
+    [r1, r2, r3, r4] = [r4, r1, r2, r3]
   }
 
-  const path = [];
-  path.push(['M', p1.x, p1.y + r1]);
-  r1 !== 0 && path.push(['A', r1, r1, 0, 0, 1, p1.x + r1, p1.y]);
-  path.push(['L', p2.x - r2, p2.y]);
-  r2 !== 0 && path.push(['A', r2, r2, 0, 0, 1, p2.x, p2.y + r2]);
-  path.push(['L', p3.x, p3.y - r3]);
-  r3 !== 0 && path.push(['A', r3, r3, 0, 0, 1, p3.x - r3, p3.y]);
-  path.push(['L', p0.x + r4, p0.y]);
-  r4 !== 0 && path.push(['A', r4, r4, 0, 0, 1, p0.x, p0.y - r4]);
-  path.push(['L', p1.x, p1.y + r1]);
-  path.push(['z']);
+  if (p0.y < p1.y /** 负数情况 */) {
+    path.push(['M', p3.x, p3.y + r3]);
+    r3 !== 0 && path.push(['A', r3, r3, 0, 0, 0, p3.x - r3, p3.y]);
+    path.push(['L', p0.x + r4, p0.y]);
+    r4 !== 0 && path.push(['A', r4, r4, 0, 0, 0, p0.x, p0.y + r4]);
+    path.push(['L', p1.x, p1.y - r1]);
+    r1 !== 0 && path.push(['A', r1, r1, 0, 0, 0/** 逆时针 */, p1.x + r1, p1.y]);
+    path.push(['L', p2.x - r2, p2.y]);
+    r2 !== 0 && path.push(['A', r2, r2, 0, 0, 0, p2.x, p2.y - r2]);
+    path.push(['L', p3.x, p3.y + r3]);
+    path.push(['z']);
+  } else if (p3.x < p0.x) {
+    path.push(['M', p2.x + r2, p2.y]);
+    r2 !== 0 && path.push(['A', r2, r2, 0, 0, 0, p2.x, p2.y + r2]);
+    path.push(['L', p3.x, p3.y - r3]);
+    r3 !== 0 && path.push(['A', r3, r3, 0, 0, 0, p3.x + r3, p3.y]);
+    path.push(['L', p0.x - r4, p0.y]);
+    r4 !== 0 && path.push(['A', r4, r4, 0, 0, 0, p0.x, p0.y - r4]);
+    path.push(['L', p1.x, p1.y + r1]);
+    r1 !== 0 && path.push(['A', r1, r1, 0, 0, 0, p1.x - r1, p1.y]);
+    path.push(['L', p2.x + r2, p2.y]);
+    path.push(['z']);
+  } else {
+    path.push(['M', p1.x, p1.y + r1]);
+    r1 !== 0 && path.push(['A', r1, r1, 0, 0, 1, p1.x + r1, p1.y]);
+    path.push(['L', p2.x - r2, p2.y]);
+    r2 !== 0 && path.push(['A', r2, r2, 0, 0, 1, p2.x, p2.y + r2]);
+    path.push(['L', p3.x, p3.y - r3]);
+    r3 !== 0 && path.push(['A', r3, r3, 0, 0, 1, p3.x - r3, p3.y]);
+    path.push(['L', p0.x + r4, p0.y]);
+    r4 !== 0 && path.push(['A', r4, r4, 0, 0, 1, p0.x, p0.y - r4]);
+    path.push(['L', p1.x, p1.y + r1]);
+    path.push(['z']);
+  }
 
   return path;
 }

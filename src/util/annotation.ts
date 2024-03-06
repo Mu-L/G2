@@ -7,11 +7,16 @@ import { Scale } from '../dependents';
  * @param scale
  */
 export function getNormalizedValue(val: number | string, scale: Scale) {
+  if (!scale) {
+    return null;
+  }
   let scaled: number;
 
   switch (val) {
     case 'start':
       return 0;
+    case 'center':
+      return 0.5;
     case 'end':
       return 1;
     case 'median': {
